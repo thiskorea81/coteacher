@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>생기부 과세특 작성</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f2f2f2;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: white;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        label {
+            display: block;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        input[type="text"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        button[type="submit"] {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button[type="submit"]:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <form action="/run_code1" method="post">
+            <label for="student_number">학번:</label>
+            <input type="text" id="student_number" name="student_number" placeholder="학번을 입력하세요." required>
+
+            <label for="name">이름:</label>
+            <input type="text" id="name" name="name" placeholder="이름을 입력하세요." required>
+
+            <label for="subject">과목 선택:</label>
+            <select id="subject" name="subject" required>
+                <option value="중_정보">중_정보</option>
+                <option value="고_정보">고_정보</option>
+                <option value="고_인공지능기초">고_인공지능기초</option>
+                <option value="고_데이터과학">고_데이터과학</option>
+                <option value="고_프로그래밍">고_프로그래밍</option>
+                <option value="고_빅데이터">고_빅데이터</option>
+                <option value="고_논리회로">고_논리회로</option>
+            </select>
+
+            <label for="achievement_criteria">성취기준:</label>
+            <textarea name="achievement_criteria" rows="2" cols="40" placeholder="해당하는 과목이 없으면 과목명과 성취기준을 입력하세요.">
+                선택과목 성취기준
+            </textarea>
+
+            <label for="grades">성적:</label>
+            <textarea name="grades" rows="1" cols="40" placeholder="성적을 입력하세요." required></textarea>
+
+            <label for="report">보고서 내용:</label>
+            <textarea name="report" rows="5" cols="40" placeholder="보고서 내용을 입력하세요." required></textarea>
+
+            <button type="submit">실행</button>
+        </form>
+    </div>
+</body>
+</html>

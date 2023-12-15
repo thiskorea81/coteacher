@@ -1,0 +1,254 @@
+import os
+from fastapi import FastAPI, Request, Form
+from openai import Client
+from openai import OpenAI
+from fastapi.templating import Jinja2Templates
+from fastapi.responses import HTMLResponse, FileResponse  # Import FileResponse
+import sqlite3 as sq
+import pandas as pd
+
+# The rest of your code...
+
+app = FastAPI()
+templates = Jinja2Templates(directory="templates")
+
+client1 = OpenAI() 
+client2 = OpenAI() 
+client3 = OpenAI() 
+client4 = OpenAI() 
+
+#LOCAL DB 연결
+def create_connection():
+    conn = sq.connect("user_database.db", check_same_thread=False)
+    c = conn.cursor()
+    return conn, c
+
+#FLASK 실행시 최초 DB생성을 위한 부분
+conn, c = create_connection()
+
+c.execute('''create table IF NOT EXISTS stuQuestions(id integer PRIMARY KEY AUTOINCREMENT, 
+        stuNum text, stuName text, menu text, subject text, stuAsk TEXT, chatbotAnswer text)''')
+c.close() #커서 종료
+conn.close() #커넥션 종료
+
+@app.post("/run_code1")
+async def run_code(
+    request: Request,
+    student_number: str = Form(...),
+    name: str = Form(...),
+    subject: str = Form(...),
+    achievement_criteria: str = Form(...),
+    grades: str = Form(...),
+    report: str = Form(...)
+):    
+    stuNum = student_number
+    stuName = name
+    menu="과세특"
+    subject=subject
+
+    # Define the path to the achievement criteria text file based on the selected subject.
+    achievement_criteria_file = f"./doc/{subject}.txt"
+
+    # Check if the file exists and read its content.
+    if os.path.isfile(achievement_criteria_file):
+        with open(achievement_criteria_file, "r", encoding="utf-8") as file:
+            achievement_criteria = file.read()
+
+    # Combine the input from all fields into a single string if needed.
+    input_text = f"교과목: {subject}\n성취기준: {achievement_criteria}\n성적: {grades}\n보고서 내용: {report}"
+
+    completion = client1.chat.completions.create(
+        model="gpt-4-1106-preview",
+        messages=[
+            {"role": "system", "content": "I ensure responses are efficient, without the need for 'continue generating', and manage response length for effective communication."},
+            {"role": "system", "content": "The GPT is attentive to details, adheres to educational standards, and uses a respectful, encouraging tone."},
+            {"role": "system", "content": "성취기준의 번호([9정02-01])는 답변에서 제거해주고 구체적 점수를 표현하지마."},
+            {"role": "system", "content": "성취기준을 그래로 작성 하지 말고, 학생의 활동이 성취 기준에 있다면 그 내용을 자세히 기술해줘."},
+            {"role": "system", "content": "오렌지3, orange3, 티처블머신, teachable machine 와 같은 실제 명칭을 쓰지말고 일반적인 언어로 표현해줘."},
+            {"role": "system", "content": "지역, 단체 명을 일반적인 언어로 표현해줘."},
+            {"role": "system", "content": "주어는 가급적 생략해줘. 예를 들어, '내가', '학생이', '나는'와 같은 표현은 생략해도 돼."},
+            {"role": "system", "content": "글쓴이의 입장이 아닌 3인칭 관찰자의 입장으로 작성해줘."},
+            {"role": "system", "content": "글쓰기 전문가의 역할을 해주고, 글자수는 약 400-500자 내외로 하고, 한 문단으로 된 잘 정돈된 글을 써줘."},
+            {"role": "system", "content": "음슴체 형식으로 써줘. 음슴체는 문체 이름 그대로 '~음'으로 끝난다. 다만 표준어법에서 '-슴'으로 쓸 수는 없다. 다만 반드시 '-음'으로만 끝나는 것은 아니고 동사의 종류에 따라 형태는 바뀔 수 있다. 어쨌거나 명사형 어미 '-ㅁ'을 쓰므로 종성이 ㅁ으로 끝난다. 명사 종결문도 흔히 같이 쓰인다. 엄격히 음슴체로 가자면 이때에도 '-임.'으로 써야 할 것이다. '-ㄴ 듯', '-ㄹ 듯'으로 끝나는 말투도 자주 쓰인다. '하셈'도 음슴체로 볼 여지가 있다. 단, 다른 음슴체가 어간에 '-ㅁ'이 결합하는 데에 비해 '하셈'은 '하세'가 어간은 아니라는 점에서 차이가 있다. 하지만 어간 + '-ㅁ' 류의 음슴체에는 명령형이 없으므로 '하셈'이 명령형의 용법으로 자주 쓰이곤 한다. 엄밀히 비교해보자면 하셈체는 약간 더 어린 계층이 쓴다는 인식이 강한 편이다."},
+            {"role": "user", "content": input_text}
+        ]
+    )
+    result = completion.choices[0].message.content
+
+    #db호출   # 민수쌤 코드
+    conn, c = create_connection()
+    c.execute("insert into stuQuestions(stuNum, stuName, menu, subject, stuAsk, chatbotAnswer) values(?,?,?,?,?,?)",
+            (stuNum, stuName, menu, subject, input_text, result))
+    c.fetchall()
+    conn.commit()
+    # 다 사용한 커서 객체를 종료할 때
+    c.close()
+    # 연결 리소스를 종료할 때
+    conn.close()
+    return templates.TemplateResponse("result.html", {"request": request, "result": result})
+
+@app.post("/run_code2")
+async def run_code(
+    request: Request,
+    student_number: str = Form(...),
+    name: str = Form(...),
+    subject: str = Form(...),
+    report: str = Form(...)
+):
+    # Combine the input from all fields into a single string if needed.
+    input_text = f"교과목: {subject}\n보고서 내용: {report}"
+    stuNum = student_number
+    stuName = name
+    menu = "자율진로"
+    subject = subject
+    completion = client2.chat.completions.create(
+        model="gpt-4-1106-preview",
+        messages=[
+            #{"role": "system", "content": "I ensure responses are efficient, without the need for 'continue generating', and manage response length for effective communication."},
+            {"role": "system", "content": "지역, 단체 명을 일반적인 언어로 표현해줘."},
+            {"role": "system", "content": "주어는 가급적 생략해줘. 예를 들어, '내가', '학생이', '나는'와 같은 표현은 생략해도 돼."},
+            {"role": "system", "content": "글쓴이의 입장이 아닌 3인칭 관찰자의 입장으로 작성해줘."},
+            {"role": "system", "content": f"글쓰기 전문가의 역할을 해주고, 교과목{subject}이 '자율'이면 글자수는 약 400-500자 내외로 하고 교과목{subject}이 '진로'면 글자수를 약 700자로 해줘. 그리고 한 문단으로 된 잘 정돈된 글을 써줘."},
+            {"role": "system", "content": "음슴체 형식으로 써줘. 음슴체는 문체 이름 그대로 '~음'으로 끝난다. 다만 표준어법에서 '-슴'으로 쓸 수는 없다. 다만 반드시 '-음'으로만 끝나는 것은 아니고 동사의 종류에 따라 형태는 바뀔 수 있다. 어쨌거나 명사형 어미 '-ㅁ'을 쓰므로 종성이 ㅁ으로 끝난다. 명사 종결문도 흔히 같이 쓰인다. 엄격히 음슴체로 가자면 이때에도 '-임.'으로 써야 할 것이다. '-ㄴ 듯', '-ㄹ 듯'으로 끝나는 말투도 자주 쓰인다. '하셈'도 음슴체로 볼 여지가 있다. 단, 다른 음슴체가 어간에 '-ㅁ'이 결합하는 데에 비해 '하셈'은 '하세'가 어간은 아니라는 점에서 차이가 있다. 하지만 어간 + '-ㅁ' 류의 음슴체에는 명령형이 없으므로 '하셈'이 명령형의 용법으로 자주 쓰이곤 한다. 엄밀히 비교해보자면 하셈체는 약간 더 어린 계층이 쓴다는 인식이 강한 편이다."},
+            {"role": "user", "content": input_text}
+        ]
+    )
+    result = completion.choices[0].message.content
+
+    #db호출   # 민수쌤 코드
+    conn, c = create_connection()
+    c.execute("insert into stuQuestions(stuNum, stuName, menu, subject, stuAsk, chatbotAnswer) values(?,?,?,?,?,?)",
+            (stuNum, stuName, menu, subject, input_text, result))
+    c.fetchall()
+    conn.commit()
+    # 다 사용한 커서 객체를 종료할 때
+    c.close()
+    # 연결 리소스를 종료할 때
+    conn.close()
+    return templates.TemplateResponse("result.html", {"request": request, "result": result})
+
+@app.post("/run_code3")
+async def run_code(
+    request: Request,
+    student_number: str = Form(...),
+    name: str = Form(...),
+    character: str = Form(...),
+    report: str = Form(...)
+):
+    # Combine the input from all fields into a single string if needed.
+    input_text = f"성격: {character}\n보고서 내용: {report}"
+    stuNum = student_number
+    stuName = name
+    menu = "행동발달"
+    subject = "행동발달"
+    completion = client3.chat.completions.create(
+        model="gpt-4-1106-preview",
+        messages=[
+            {"role": "system", "content": "I ensure responses are efficient, without the need for 'continue generating', and manage response length for effective communication."},
+            {"role": "system", "content": "성격을 그대로 쓰지는 말고 일반적인 용어로 풀어서 써주고 학생의 성격에 맞게 이 학생의 행동발달 사항을 적어줘."},
+            {"role": "system", "content": "지역, 단체 명을 일반적인 언어로 표현해줘."},
+            {"role": "system", "content": "주어는 가급적 생략해줘. 예를 들어, '내가', '학생이', '나는'와 같은 표현은 생략해도 돼."},
+            {"role": "system", "content": "글쓴이의 입장이 아닌 3인칭 관찰자의 입장으로 작성해줘."},
+            {"role": "system", "content": "글쓰기 전문가의 역할을 해주고, 글자수는 약 400-500자 내외로 하고, 한 문단으로 된 잘 정돈된 글을 써줘."},
+            {"role": "system", "content": "음슴체 형식으로 써줘. 음슴체는 문체 이름 그대로 '~음'으로 끝난다. 다만 표준어법에서 '-슴'으로 쓸 수는 없다. 다만 반드시 '-음'으로만 끝나는 것은 아니고 동사의 종류에 따라 형태는 바뀔 수 있다. 어쨌거나 명사형 어미 '-ㅁ'을 쓰므로 종성이 ㅁ으로 끝난다. 명사 종결문도 흔히 같이 쓰인다. 엄격히 음슴체로 가자면 이때에도 '-임.'으로 써야 할 것이다. '-ㄴ 듯', '-ㄹ 듯'으로 끝나는 말투도 자주 쓰인다. '하셈'도 음슴체로 볼 여지가 있다. 단, 다른 음슴체가 어간에 '-ㅁ'이 결합하는 데에 비해 '하셈'은 '하세'가 어간은 아니라는 점에서 차이가 있다. 하지만 어간 + '-ㅁ' 류의 음슴체에는 명령형이 없으므로 '하셈'이 명령형의 용법으로 자주 쓰이곤 한다. 엄밀히 비교해보자면 하셈체는 약간 더 어린 계층이 쓴다는 인식이 강한 편이다."},
+            {"role": "user", "content": input_text}
+        ]
+    )
+    result = completion.choices[0].message.content
+
+    #db호출   # 민수쌤 코드
+    conn, c = create_connection()
+    c.execute("insert into stuQuestions(stuNum, stuName, menu, subject, stuAsk, chatbotAnswer) values(?,?,?,?,?,?)",
+            (stuNum, stuName, menu, subject, input_text, result))
+    c.fetchall()
+    conn.commit()
+    # 다 사용한 커서 객체를 종료할 때
+    c.close()
+    # 연결 리소스를 종료할 때
+    conn.close()
+    return templates.TemplateResponse("result.html", {"request": request, "result": result})
+
+@app.post("/run_code4")
+async def run_code(
+    request: Request,
+    student_number: str = Form(...),
+    name: str = Form(...),
+    report: str = Form(...)
+):
+    # Combine the input from all fields into a single string if needed.
+    input_text = f"보고서 내용: {report}"
+    stuNum = student_number
+    stuName = name
+    menu = "검토"
+    completion = client4.chat.completions.create(
+        model="gpt-4-1106-preview",
+        messages=[
+            {"role": "system", "content": "As 'Literary Mentor', I now specialize in evaluating and editing Korean text provided in Excel files. My role involves assessing grammar, vocabulary, expression, sentence structure, composition, and ideas. I will provide a grade from A+ to F, along with customized comments. I will also offer overall summaries and advice. When editing paragraphs, I'll make suggestions for revisions and improvements. I consider any specific format constraints as non-errors and determine if the text was generated by a GPT. My feedback is both encouraging and professional. I respond to queries in Korean, providing concise and clear answers. I now also handle data from Excel files where the first column is student numbers, the second is names, the third is the text of the school record, and the fourth is the byte count. I use this information for tailored feedback."},
+            #{"role": "system", "content": "I ensure responses are efficient, without the need for 'continue generating', and manage response length for effective communication."},
+            {"role": "system", "content": "문법, 어법에 틀린 문장이 있으면 수정해주고 한글로 답변해줘."},
+            {"role": "user", "content": input_text}
+        ]
+    )
+    result = completion.choices[0].message.content
+
+    #db호출   # 민수쌤 코드
+    conn, c = create_connection()
+    c.execute("insert into stuQuestions(stuNum, stuName, menu, stuAsk, chatbotAnswer) values(?,?,?,?,?)",
+            (stuNum, stuName, menu, input_text, result))
+    c.fetchall()
+    conn.commit()
+    # 다 사용한 커서 객체를 종료할 때
+    c.close()
+    # 연결 리소스를 종료할 때
+    conn.close()
+    return templates.TemplateResponse("result.html", {"request": request, "result": result})
+    
+def get_dataframe_from_db():
+    #db호출
+    conn, c = create_connection()
+    query = "SELECT stuNum, stuName, menu, subject, stuAsk, chatbotAnswer FROM stuQuestions ORDER BY stuNum"
+    df = pd.read_sql_query(query, conn)
+    conn.close()
+    return df
+
+@app.get("/db", response_class=HTMLResponse)
+async def show_db(request: Request):
+    df = get_dataframe_from_db()
+    #print(df) #터미털에서 출력함으로써 테스트해볼 수 있음
+    df.to_csv('./result/question.csv', encoding='utf-8')
+    table = df.to_html(classes='table table-striped')
+    return templates.TemplateResponse('show_db.html', {"request": request, "table_data": table})
+
+@app.get("/export")
+async def export():
+    df = get_dataframe_from_db()
+    df.to_csv('result.csv', encoding='utf-8')    #구글문서에서 열면 한글이 깨지지 않고 보임
+    return FileResponse('result.csv', media_type='text/csv', filename='result.csv')
+
+@app.get("/")
+async def home(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request})
+
+@app.get("/main", response_class=HTMLResponse)
+async def main(request: Request):
+    return templates.TemplateResponse("main.html", {"request": request})
+
+@app.get("/nav1", response_class=HTMLResponse)
+async def nav1(request: Request):
+    return templates.TemplateResponse("nav1.html", {"request": request})
+
+@app.get("/nav2", response_class=HTMLResponse)
+async def nav2(request: Request):
+    return templates.TemplateResponse("nav2.html", {"request": request})
+
+@app.get("/nav3", response_class=HTMLResponse)
+async def nav3(request: Request):
+    return templates.TemplateResponse("nav3.html", {"request": request})
+
+@app.get("/nav4", response_class=HTMLResponse)
+async def nav4(request: Request):
+    return templates.TemplateResponse("nav4.html", {"request": request})
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)

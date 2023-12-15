@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Playground</title>
+<style>
+  body {
+    font-family: 'Arial', sans-serif;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+  }
+  header, footer {
+    background-color: #333;
+    color: white;
+    padding: 1rem;
+    text-align: center;
+  }
+  nav {
+    background-color: #000000;
+    color: white;
+    padding: 1rem;
+    text-align: center;
+    font-size:xx-large ;
+  }
+  nav a {
+    color: white; /* 링크 색상을 흰색으로 설정 */
+    text-decoration: none; /* 링크 밑줄 제거 */
+  }
+
+  nav a:hover {
+    color: yellow; /* 마우스 오버 시에도 링크 색상을 흰색으로 유지 */
+    text-decoration: none; /* 마우스 오버 시 밑줄 제거 */
+  }
+  section {
+    flex-grow: 1;
+    display: flex;
+  }
+  article {
+    flex-grow: 2;
+    padding: 1rem;
+    
+  }
+  /* iframe에 대한 스타일 */
+  iframe {
+    height: 100%; /* iframe의 높이를 조정 */
+    border: none; /* iframe 테두리 제거 */
+    overflow: hidden; /* 넘치는 콘텐츠 숨기기 */
+  }
+
+  /* main iframe에 대한 스타일 */
+  iframe[name="main"] {
+    flex-grow: 10; /* main iframe의 크기를 전체의 60%로 설정 */
+  }
+
+</style>
+</head>
+<body>
+    <header>AI Playground w GPT</header>
+    <nav>
+      <!-- 각 페이지로의 링크를 설정합니다. -->
+      <a href="{{ url_for('home') }}">[HOME]</a>        
+      <a href="{{ url_for('nav1') }}" target="main">[과세특작성]</a>
+      <a href="{{ url_for('nav2') }}" target="main">[자율진로작성]</a>
+      <a href="{{ url_for('nav3') }}" target="main">[행동발달작성]</a>
+      <a href="{{ url_for('nav4') }}" target="main">[생기부검토]</a>  
+      <a href="{{ url_for('show_db') }}" target="main">[DB]</div></a>  
+  </nav>
+    <section>
+        <iframe src="{{ url_for('nav1') }}" name="main" frameborder="0"></iframe>
+    </section>    
+    
+    <footer>
+      copyright@ thiskorea
+    </footer>
+</body>
+</html>
