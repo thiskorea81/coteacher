@@ -6,3 +6,4 @@ bak/
 result.csv
 *.bak
 *.db
+*.pyc
