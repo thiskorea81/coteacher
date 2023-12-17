@@ -2,16 +2,17 @@ import os
 import io
 import time
 import csv
-from fastapi import FastAPI, Request, Form, File, UploadFile
+import asyncio
+import uuid
+from fastapi import FastAPI, Request, Form, File, UploadFile, WebSocket
 from openai import Client
 from openai import OpenAI
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, FileResponse  # Import FileResponse
 from starlette.responses import RedirectResponse
+from asyncio import create_task
 import sqlite3 as sq
 import pandas as pd
-
-# The rest of your code...
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
@@ -207,7 +208,10 @@ async def run_code(
     # 연결 리소스를 종료할 때
     conn.close()
     return templates.TemplateResponse("result.html", {"request": request, "result": result})
-    
+
+# read_csv_and_insert_to_db 를 위한 전역변수
+processing_status = {}
+
 async def read_csv_and_insert_to_db1(csv_file: UploadFile):
     conn, c = create_connection()
 
@@ -269,13 +273,14 @@ async def read_csv_and_insert_to_db1(csv_file: UploadFile):
     conn.close()
 
 async def read_csv_and_insert_to_db2(csv_file: UploadFile):
+    
     conn, c = create_connection()
 
     contents = await csv_file.read()
     text_file = io.StringIO(contents.decode('utf-8'))
     
     csvreader = csv.DictReader(text_file)
-
+    count = 0
     for row in csvreader:
 
         client = OpenAI() 
@@ -307,7 +312,8 @@ async def read_csv_and_insert_to_db2(csv_file: UploadFile):
             ]
         )
         result = completion.choices[0].message.content
-
+        count += 1
+        print(f"{count}개 완료")
         # Insert the data into the database
         c.execute("insert into stuQuestions(stuNum, stuName, menu, subject, stuAsk, chatbotAnswer) values(?,?,?,?,?,?)",
                 (stuNum, stuName, menu, subject, input_text, result))
@@ -315,7 +321,8 @@ async def read_csv_and_insert_to_db2(csv_file: UploadFile):
     conn.commit()
     c.close()
     conn.close()
-
+    print("완료")
+    
 async def read_csv_and_insert_to_db3(csv_file: UploadFile):
     conn, c = create_connection()
 
@@ -447,10 +454,17 @@ async def nav4(request: Request):
 # Loading route that redirects to the loading.html page during initialization
 @app.get("/loading", response_class=HTMLResponse)
 async def loading():
-     # Provide the path to your CSV file
-    csv_file_path = 'path_to_your_csv_file.csv'
-    read_csv_and_insert_to_db(csv_file_path)
     return RedirectResponse("/loading.html")
+
+@app.websocket("/ws/{file_id}")
+async def websocket_endpoint(websocket: WebSocket, file_id: str):
+    await websocket.accept()
+    while True:
+        if file_id in processing_status:
+            await websocket.send_text(processing_status[file_id])
+            if processing_status[file_id] == "처리 완료":
+                break
+        await asyncio.sleep(1)  # 상태 확인 간격
 
 if __name__ == "__main__":
     import uvicorn
