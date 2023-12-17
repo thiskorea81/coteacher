@@ -65,6 +65,12 @@
 </head>
 <body>
     <div class="container">
+        <form action="/upload_csv2" method="post" enctype="multipart/form-data">
+            <label for="csv_file">CSV 파일 선택:</label>
+            <input type="file" id="csv_file" name="csv_file" accept=".csv" required>
+            <button type="submit">업로드</button>
+        </form></div>
+    <div class="container">
         <form action="/run_code2" method="post">
             <label for="student_number">학번:</label>
             <input type="text" id="student_number" name="student_number" placeholder="학번을 입력하세요." required>

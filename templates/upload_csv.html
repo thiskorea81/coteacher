@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSV 파일 불러오기</title>
+</head>
+<body>
+    <h1>CSV 파일 불러오기</h1>
+    <form action="/upload_csv1" method="post" enctype="multipart/form-data">
+        <label for="csv_file">CSV 파일 선택:</label>
+        <input type="file" id="csv_file" name="csv_file" accept=".csv" required>
+        <button type="submit">업로드</button>
+    </form>
+</body>
+</html>

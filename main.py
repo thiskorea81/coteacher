@@ -1,9 +1,13 @@
 import os
-from fastapi import FastAPI, Request, Form
+import io
+import time
+import csv
+from fastapi import FastAPI, Request, Form, File, UploadFile
 from openai import Client
 from openai import OpenAI
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, FileResponse  # Import FileResponse
+from starlette.responses import RedirectResponse
 import sqlite3 as sq
 import pandas as pd
 
@@ -204,6 +208,196 @@ async def run_code(
     conn.close()
     return templates.TemplateResponse("result.html", {"request": request, "result": result})
     
+async def read_csv_and_insert_to_db1(csv_file: UploadFile):
+    conn, c = create_connection()
+
+    contents = await csv_file.read()
+    text_file = io.StringIO(contents.decode('utf-8'))
+    
+    csvreader = csv.DictReader(text_file)
+
+    for row in csvreader:
+
+        client = OpenAI() 
+
+        stuNum = row['학번']
+        stuName = row['이름']
+        subject = row['과목 선택']
+        achievement_criteria = row['성취기준']
+        grades = row['성적']
+        report = row['보고서 내용']
+        remarks = row['비고']
+        menu="과세특"
+
+        # Define the path to the achievement criteria text file based on the selected subject.
+        achievement_criteria_file = f"./doc/{subject}.txt"
+
+        # Check if the file exists and read its content.
+        if os.path.isfile(achievement_criteria_file):
+            with open(achievement_criteria_file, "r", encoding="utf-8") as file:
+                achievement_criteria = file.read()
+
+        # Combine the input from all fields into a single string if needed.
+        input_text = f"교과목: {subject}\n성취기준: {achievement_criteria}\n성적: {grades}\n보고서 내용: {report}\n비고: {remarks}"
+
+        completion = client.chat.completions.create(
+            model="gpt-4-1106-preview",
+            messages=[
+                {"role": "system", "content": "I ensure responses are efficient, without the need for 'continue generating', and manage response length for effective communication."},
+                {"role": "system", "content": "The GPT is attentive to details, adheres to educational standards, and uses a respectful, encouraging tone."},
+                {"role": "system", "content": "성취기준의 번호([9정02-01])는 답변에서 제거해주고 구체적 점수를 표현하지마."},
+                {"role": "system", "content": "성취기준을 그래로 작성 하지 말고, 학생의 활동이 성취 기준에 있다면 그 내용을 자세히 기술해줘."},
+                {"role": "system", "content": "책을 읽은 독서 활동이 있으면 '책이름(저자)'를 꼭 표시해줘. 예를 들어 '코드 브레이커(월터 아이작슨)'를 읽고 ~ 이렇게"},
+                {"role": "system", "content": "오렌지3, orange3, 티처블머신, teachable machine 와 같은 실제 명칭을 쓰지말고 일반적인 언어로 표현해줘."},
+                {"role": "system", "content": "지역, 단체 명을 일반적인 언어로 표현해줘."},
+                {"role": "system", "content": "주어는 가급적 생략해줘. 예를 들어, '내가', '학생이', '나는'와 같은 표현은 생략해도 돼."},
+                {"role": "system", "content": "글쓴이의 입장이 아닌 3인칭 관찰자의 입장으로 작성해줘."},
+                {"role": "system", "content": "글쓰기 전문가의 역할을 해주고, 글자수는 약 400-500자 내외로 하고, 한 문단으로 된 잘 정돈된 글을 써줘."},
+                {"role": "system", "content": "비고의 내용은 꼭 지켜줘."},
+                {"role": "system", "content": "음슴체 형식으로 써줘. 음슴체는 문체 이름 그대로 '~음'으로 끝난다. 다만 표준어법에서 '-슴'으로 쓸 수는 없다. 다만 반드시 '-음'으로만 끝나는 것은 아니고 동사의 종류에 따라 형태는 바뀔 수 있다. 어쨌거나 명사형 어미 '-ㅁ'을 쓰므로 종성이 ㅁ으로 끝난다. 명사 종결문도 흔히 같이 쓰인다. 엄격히 음슴체로 가자면 이때에도 '-임.'으로 써야 할 것이다. '-ㄴ 듯', '-ㄹ 듯'으로 끝나는 말투도 자주 쓰인다. '하셈'도 음슴체로 볼 여지가 있다. 단, 다른 음슴체가 어간에 '-ㅁ'이 결합하는 데에 비해 '하셈'은 '하세'가 어간은 아니라는 점에서 차이가 있다. 하지만 어간 + '-ㅁ' 류의 음슴체에는 명령형이 없으므로 '하셈'이 명령형의 용법으로 자주 쓰이곤 한다. 엄밀히 비교해보자면 하셈체는 약간 더 어린 계층이 쓴다는 인식이 강한 편이다."},
+                {"role": "user", "content": input_text}
+            ]
+        )
+        result = completion.choices[0].message.content
+
+        # Insert the data into the database
+        c.execute("insert into stuQuestions(stuNum, stuName, menu, subject, stuAsk, chatbotAnswer) values(?,?,?,?,?,?)",
+                (stuNum, stuName, menu, subject, input_text, result))
+    
+    conn.commit()
+    c.close()
+    conn.close()
+
+async def read_csv_and_insert_to_db2(csv_file: UploadFile):
+    conn, c = create_connection()
+
+    contents = await csv_file.read()
+    text_file = io.StringIO(contents.decode('utf-8'))
+    
+    csvreader = csv.DictReader(text_file)
+
+    for row in csvreader:
+
+        client = OpenAI() 
+
+        stuNum = row['학번']
+        stuName = row['이름']
+        subject = row['과목 선택']
+        achievement_criteria = row['성취기준']
+        grades = row['성적']
+        report = row['보고서 내용']
+        remarks = row['비고']
+        menu="자율진로"
+        subject=subject
+
+        # Combine the input from all fields into a single string if needed.
+        input_text = f"교과목: {subject}\n보고서 내용: {report}\n비고: {remarks}"
+
+        completion = client.chat.completions.create(
+            model="gpt-4-1106-preview",
+            messages=[
+                #{"role": "system", "content": "I ensure responses are efficient, without the need for 'continue generating', and manage response length for effective communication."},
+                {"role": "system", "content": "지역, 단체 명을 일반적인 언어로 표현해줘."},
+                {"role": "system", "content": "주어는 가급적 생략해줘. 예를 들어, '내가', '학생이', '나는'와 같은 표현은 생략해도 돼."},
+                {"role": "system", "content": "글쓴이의 입장이 아닌 3인칭 관찰자의 입장으로 작성해줘."},
+                {"role": "system", "content": f"글쓰기 전문가의 역할을 해주고, 교과목{subject}이 '자율'이면 글자수는 약 400-500자 내외로 하고 교과목{subject}이 '진로'면 글자수를 약 700자로 해줘. 그리고 한 문단으로 된 잘 정돈된 글을 써줘."},
+                {"role": "system", "content": "음슴체 형식으로 써줘. 음슴체는 문체 이름 그대로 '~음'으로 끝난다. 다만 표준어법에서 '-슴'으로 쓸 수는 없다. 다만 반드시 '-음'으로만 끝나는 것은 아니고 동사의 종류에 따라 형태는 바뀔 수 있다. 어쨌거나 명사형 어미 '-ㅁ'을 쓰므로 종성이 ㅁ으로 끝난다. 명사 종결문도 흔히 같이 쓰인다. 엄격히 음슴체로 가자면 이때에도 '-임.'으로 써야 할 것이다. '-ㄴ 듯', '-ㄹ 듯'으로 끝나는 말투도 자주 쓰인다. '하셈'도 음슴체로 볼 여지가 있다. 단, 다른 음슴체가 어간에 '-ㅁ'이 결합하는 데에 비해 '하셈'은 '하세'가 어간은 아니라는 점에서 차이가 있다. 하지만 어간 + '-ㅁ' 류의 음슴체에는 명령형이 없으므로 '하셈'이 명령형의 용법으로 자주 쓰이곤 한다. 엄밀히 비교해보자면 하셈체는 약간 더 어린 계층이 쓴다는 인식이 강한 편이다."},
+                {"role": "system", "content": "비고의 내용은 꼭 지켜줘."},
+                {"role": "user", "content": input_text}
+            ]
+        )
+        result = completion.choices[0].message.content
+
+        # Insert the data into the database
+        c.execute("insert into stuQuestions(stuNum, stuName, menu, subject, stuAsk, chatbotAnswer) values(?,?,?,?,?,?)",
+                (stuNum, stuName, menu, subject, input_text, result))
+    
+    conn.commit()
+    c.close()
+    conn.close()
+
+async def read_csv_and_insert_to_db3(csv_file: UploadFile):
+    conn, c = create_connection()
+
+    contents = await csv_file.read()
+    text_file = io.StringIO(contents.decode('utf-8'))
+    
+    csvreader = csv.DictReader(text_file)
+
+    for row in csvreader:
+
+        client = OpenAI() 
+
+        stuNum = row['학번']
+        stuName = row['이름']
+        subject = row['과목 선택']
+        achievement_criteria = row['성취기준']
+        grades = row['성적']
+        report = row['보고서 내용']
+        remarks = row['비고']
+        menu="행동발달"
+        subject="행동발달"
+
+        # Combine the input from all fields into a single string if needed.
+        input_text = f"보고서 내용: {report}\n비고: {remarks}"
+
+        completion = client.chat.completions.create(
+            model="gpt-4-1106-preview",
+            messages=[
+                {"role": "system", "content": "I ensure responses are efficient, without the need for 'continue generating', and manage response length for effective communication."},
+                {"role": "system", "content": "The GPT is attentive to details, adheres to educational standards, and uses a respectful, encouraging tone."},
+                {"role": "system", "content": "성취기준의 번호([9정02-01])는 답변에서 제거해주고 구체적 점수를 표현하지마."},
+                {"role": "system", "content": "성취기준을 그래로 작성 하지 말고, 학생의 활동이 성취 기준에 있다면 그 내용을 자세히 기술해줘."},
+                {"role": "system", "content": "책을 읽은 독서 활동이 있으면 '책이름(저자)'를 꼭 표시해줘. 예를 들어 '코드 브레이커(월터 아이작슨)'를 읽고 ~ 이렇게"},
+                {"role": "system", "content": "오렌지3, orange3, 티처블머신, teachable machine 와 같은 실제 명칭을 쓰지말고 일반적인 언어로 표현해줘."},
+                {"role": "system", "content": "지역, 단체 명을 일반적인 언어로 표현해줘."},
+                {"role": "system", "content": "주어는 가급적 생략해줘. 예를 들어, '내가', '학생이', '나는'와 같은 표현은 생략해도 돼."},
+                {"role": "system", "content": "글쓴이의 입장이 아닌 3인칭 관찰자의 입장으로 작성해줘."},
+                {"role": "system", "content": "글쓰기 전문가의 역할을 해주고, 글자수는 약 400-500자 내외로 하고, 한 문단으로 된 잘 정돈된 글을 써줘."},
+                {"role": "system", "content": "비고의 내용은 꼭 지켜줘."},
+                {"role": "system", "content": "음슴체 형식으로 써줘. 음슴체는 문체 이름 그대로 '~음'으로 끝난다. 다만 표준어법에서 '-슴'으로 쓸 수는 없다. 다만 반드시 '-음'으로만 끝나는 것은 아니고 동사의 종류에 따라 형태는 바뀔 수 있다. 어쨌거나 명사형 어미 '-ㅁ'을 쓰므로 종성이 ㅁ으로 끝난다. 명사 종결문도 흔히 같이 쓰인다. 엄격히 음슴체로 가자면 이때에도 '-임.'으로 써야 할 것이다. '-ㄴ 듯', '-ㄹ 듯'으로 끝나는 말투도 자주 쓰인다. '하셈'도 음슴체로 볼 여지가 있다. 단, 다른 음슴체가 어간에 '-ㅁ'이 결합하는 데에 비해 '하셈'은 '하세'가 어간은 아니라는 점에서 차이가 있다. 하지만 어간 + '-ㅁ' 류의 음슴체에는 명령형이 없으므로 '하셈'이 명령형의 용법으로 자주 쓰이곤 한다. 엄밀히 비교해보자면 하셈체는 약간 더 어린 계층이 쓴다는 인식이 강한 편이다."},
+                {"role": "user", "content": input_text}
+            ]
+        )
+        result = completion.choices[0].message.content
+
+        # Insert the data into the database
+        c.execute("insert into stuQuestions(stuNum, stuName, menu, subject, stuAsk, chatbotAnswer) values(?,?,?,?,?,?)",
+                (stuNum, stuName, menu, subject, input_text, result))
+    
+    conn.commit()
+    c.close()
+    conn.close()
+
+@app.get("/upload_csv_page", response_class=HTMLResponse)
+async def upload_csv_page(request: Request):
+    return templates.TemplateResponse("upload_csv.html", {"request": request})
+
+@app.post("/upload_csv1")
+async def upload_csv(csv_file: UploadFile = File(...)):
+    # Check if a CSV file was uploaded
+    if csv_file:
+        await read_csv_and_insert_to_db1(csv_file)
+
+    return {"message": "CSV file uploaded and processed successfully"}
+
+@app.post("/upload_csv2")
+async def upload_csv(csv_file: UploadFile = File(...)):
+    # Check if a CSV file was uploaded
+    if csv_file:
+        await read_csv_and_insert_to_db2(csv_file)
+
+    return {"message": "CSV file uploaded and processed successfully"}
+
+@app.post("/upload_csv3")
+async def upload_csv(csv_file: UploadFile = File(...)):
+    # Check if a CSV file was uploaded
+    if csv_file:
+        await read_csv_and_insert_to_db3(csv_file)
+
+    return {"message": "CSV file uploaded and processed successfully"}
+
+
 def get_dataframe_from_db():
     #db호출
     conn, c = create_connection()
@@ -249,6 +443,14 @@ async def nav3(request: Request):
 @app.get("/nav4", response_class=HTMLResponse)
 async def nav4(request: Request):
     return templates.TemplateResponse("nav4.html", {"request": request})
+
+# Loading route that redirects to the loading.html page during initialization
+@app.get("/loading", response_class=HTMLResponse)
+async def loading():
+     # Provide the path to your CSV file
+    csv_file_path = 'path_to_your_csv_file.csv'
+    read_csv_and_insert_to_db(csv_file_path)
+    return RedirectResponse("/loading.html")
 
 if __name__ == "__main__":
     import uvicorn

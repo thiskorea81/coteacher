@@ -2,8 +2,8 @@
 .venv/
 .env
 bak/
-*.csv
 result.csv
+question.csv
 *.bak
 *.db
 *.pyc
