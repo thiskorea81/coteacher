@@ -138,6 +138,7 @@ async def run_code(
     request: Request,
     student_number: str = Form(...),
     name: str = Form(...),
+    subject: str = Form(...),
     character: str = Form(...),
     report: str = Form(...)
 ):
