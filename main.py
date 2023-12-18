@@ -418,7 +418,7 @@ def get_dataframe_from_db():
 async def show_db(request: Request):
     df = get_dataframe_from_db()
     #print(df) #터미털에서 출력함으로써 테스트해볼 수 있음
-    df.to_csv('./result/question.csv', encoding='utf-8')
+    df.to_csv('question.csv', encoding='utf-8')
     table = df.to_html(classes='table table-striped')
     return templates.TemplateResponse('show_db.html', {"request": request, "table_data": table})
 
