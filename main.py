@@ -8,6 +8,7 @@ from fastapi import FastAPI, Request, Form, File, UploadFile, WebSocket
 from openai import Client
 from openai import OpenAI
 from fastapi.templating import Jinja2Templates
+from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, FileResponse  # Import FileResponse
 from starlette.responses import RedirectResponse
 from asyncio import create_task
@@ -16,6 +17,9 @@ import pandas as pd
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
+
+# csv_sample 폴더를 정적 파일로 제공
+app.mount("/static", StaticFiles(directory="csv_sample"), name="static")
 
 client1 = OpenAI() 
 client2 = OpenAI() 
