@@ -471,6 +471,19 @@ async def websocket_endpoint(websocket: WebSocket, file_id: str):
                 break
         await asyncio.sleep(1)  # 상태 확인 간격
 
+def clear_database():
+    conn, c = create_connection()
+    c.execute("DELETE FROM stuQuestions")  # 모든 데이터를 삭제
+    conn.commit()
+    c.close()
+    conn.close()
+
+@app.get("/clear_db")
+async def clear_db():
+    clear_database()
+    return {"message": "Database cleared successfully"}
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

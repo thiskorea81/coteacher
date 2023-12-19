@@ -9,6 +9,8 @@
     <div class="container">
         <!-- 내보내기 버튼 -->
         <a href="{{ url_for('export') }}" class="btn btn-primary">Export to CSV</a>
+        <a href="{{ url_for('clear_db') }}" class="btn btn-danger">Clear Database</a>
+
         
         <table class="table table-striped">
             {{ table_data|safe }}
