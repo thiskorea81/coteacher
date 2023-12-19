@@ -18,8 +18,14 @@ import pandas as pd
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 
-# csv_sample 폴더를 정적 파일로 제공
-app.mount("/static", StaticFiles(directory="csv_sample"), name="static")
+# csv_sample 폴더를 /csv_sample 경로에 마운트
+app.mount("/csv_sample", StaticFiles(directory="csv_sample"), name="csv_sample")
+
+# img 폴더를 /img 경로에 마운트
+app.mount("/img", StaticFiles(directory="img"), name="img")
+
+# 기존에 /static 경로로 마운트된 다른 정적 파일 폴더가 있다면 그대로 유지
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 client1 = OpenAI() 
 client2 = OpenAI() 

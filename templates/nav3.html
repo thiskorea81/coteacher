@@ -61,19 +61,73 @@
         button[type="submit"]:hover {
             background-color: #0056b3;
         }
+
+        #load {
+            display: none; /* 기본적으로 숨김 */
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            position: fixed;
+            
+            opacity: 0.8;
+            background: white;
+            z-index: 99;
+            text-align: center;
+        }
     </style>
+    <script>
+        function showLoading() {
+            document.getElementById("load").style.display = 'block';
+        }
+
+        function hideLoading() {
+            document.getElementById("load").style.display = 'none';
+        }
+
+        function submitForm(event, apiPath) {
+            event.preventDefault(); // 폼의 기본 제출 방지
+            showLoading();
+
+            let form = event.target;
+            fetch(apiPath, {
+                method: 'POST',
+                body: new FormData(form)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.text();
+            })
+            .then(html => {
+                hideLoading();
+                // 결과 처리...
+                document.body.innerHTML = html; // 페이지의 내용을 서버 응답으로 대체
+            })
+            .catch(error => {
+                hideLoading();
+                console.error('Error:', error);
+            });
+
+            return false;
+        }
+    </script>
 </head>
 <body>
+    <div id="load">
+        <img src="img/loading.gif" alt="loading">
+    </div>
     <div class="container">
-        <form action="/upload_csv3" method="post" enctype="multipart/form-data">
+        <form id="csvForm" onsubmit="return submitForm(event, '/upload_csv3');">
             <label for="csv_file">CSV 파일 선택:</label>
             <input type="file" id="csv_file" name="csv_file" accept=".csv" required>
             <button type="submit">업로드</button>
-            <a href="/static/upload_csv_sample_1.csv" download="upload_csv_sample_3.csv">샘플 파일 다운로드</a>
+            <a href="/csv_sample/upload_csv_sample_1.csv" download="upload_csv_sample_3.csv">샘플 파일 다운로드</a>
 
         </form></div>
     <div class="container">
-        <form action="/run_code2" method="post">
+        <form id="codeForm" onsubmit="return submitForm(event, '/run_code3');">
             <label for="student_number">학번:</label>
             <input type="text" id="student_number" name="student_number" placeholder="학번을 입력하세요." required>
 

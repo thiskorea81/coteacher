@@ -5,47 +5,38 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Loading...</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f2f2f2;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
+    #load {
+        width: 100%;
+        height: 100%;
+        top: 0;
+        left: 0;
+        position: fixed;
+        display: block;
+        opacity: 0.8;
+        background: white;
+        z-index: 99;
+        text-align: center;
         }
-
-        .loading-spinner {
-            border: 4px solid rgba(255, 255, 255, 0.3);
-            border-top: 4px solid #007bff;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 2s linear infinite;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+    
+    #load > img {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        z-index: 100;
         }
     </style>
+    <script >
+        const loading_page = document.getElementById("load");
+        window.onload = function(){
+          loading_page.style.display = 'none';
+        }
+      </script>
 </head>
 <body>
-    <div class="loading-spinner"></div>
-    <p id="status">Loading...</p>  <!-- 상태 메시지를 표시할 요소 추가 -->
-    <script>
-        var fileID = "{{ file_id }}";  // 서버로부터 받은 파일 ID
-        var ws = new WebSocket("ws://localhost:8000/ws/" + fileID);
-
-        ws.onmessage = function(event) {
-            var statusDiv = document.getElementById("status");
-            statusDiv.textContent = event.data;
-
-            // '처리 완료' 메시지를 받으면 다음 페이지로 이동
-            if (event.data === "처리 완료") {
-                window.location.href = '/db';  // 다음 페이지 URL로 변경
-            }
-        };
-    </script>
+    <div id="load">
+        <img src="img/loading.gif" alt="loading">
+    </div>
+      
+      
 </body>
 </html>
