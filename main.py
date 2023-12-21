@@ -18,13 +18,9 @@ import pandas as pd
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 
-# csv_sample 폴더를 /csv_sample 경로에 마운트
+# staticFiles mount
 app.mount("/csv_sample", StaticFiles(directory="csv_sample"), name="csv_sample")
-
-# img 폴더를 /img 경로에 마운트
 app.mount("/img", StaticFiles(directory="img"), name="img")
-
-# 기존에 /static 경로로 마운트된 다른 정적 파일 폴더가 있다면 그대로 유지
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 client = OpenAI()
@@ -35,7 +31,7 @@ def create_connection():
     c = conn.cursor()
     return conn, c
 
-#FLASK 실행시 최초 DB생성을 위한 부분
+#최초 DB생성을 위한 부분
 conn, c = create_connection()
 
 c.execute('''create table IF NOT EXISTS stuQuestions(id integer PRIMARY KEY AUTOINCREMENT, 
@@ -43,8 +39,8 @@ c.execute('''create table IF NOT EXISTS stuQuestions(id integer PRIMARY KEY AUTO
 c.close() #커서 종료
 conn.close() #커넥션 종료
 
+#db호출   # 민수쌤 코드
 def insert_into_database(stuNum, stuName, menu, subject, input_text, result):
-    #db호출   # 민수쌤 코드
     conn, c = create_connection()
     c.execute("insert into stuQuestions(stuNum, stuName, menu, subject, stuAsk, chatbotAnswer) values(?,?,?,?,?,?)",
             (stuNum, stuName, menu, subject, input_text, result))
@@ -101,16 +97,9 @@ async def run_code(
     )
     result = completion.choices[0].message.content
 
-    #db호출   # 민수쌤 코드
-    conn, c = create_connection()
-    c.execute("insert into stuQuestions(stuNum, stuName, menu, subject, stuAsk, chatbotAnswer) values(?,?,?,?,?,?)",
-            (stuNum, stuName, menu, subject, input_text, result))
-    c.fetchall()
-    conn.commit()
-    # 다 사용한 커서 객체를 종료할 때
-    c.close()
-    # 연결 리소스를 종료할 때
-    conn.close()
+    # Insert the data into the database
+    insert_into_database(stuNum, stuName, menu, subject, input_text, result)
+
     return templates.TemplateResponse("result.html", {"request": request, "result": result})
 
 @app.post("/run_code2")
@@ -141,16 +130,9 @@ async def run_code(
     )
     result = completion.choices[0].message.content
 
-    #db호출   # 민수쌤 코드
-    conn, c = create_connection()
-    c.execute("insert into stuQuestions(stuNum, stuName, menu, subject, stuAsk, chatbotAnswer) values(?,?,?,?,?,?)",
-            (stuNum, stuName, menu, subject, input_text, result))
-    c.fetchall()
-    conn.commit()
-    # 다 사용한 커서 객체를 종료할 때
-    c.close()
-    # 연결 리소스를 종료할 때
-    conn.close()
+    # Insert the data into the database
+    insert_into_database(stuNum, stuName, menu, subject, input_text, result)
+
     return templates.TemplateResponse("result.html", {"request": request, "result": result})
 
 @app.post("/run_code3")
@@ -183,16 +165,9 @@ async def run_code(
     )
     result = completion.choices[0].message.content
 
-    #db호출   # 민수쌤 코드
-    conn, c = create_connection()
-    c.execute("insert into stuQuestions(stuNum, stuName, menu, subject, stuAsk, chatbotAnswer) values(?,?,?,?,?,?)",
-            (stuNum, stuName, menu, subject, input_text, result))
-    c.fetchall()
-    conn.commit()
-    # 다 사용한 커서 객체를 종료할 때
-    c.close()
-    # 연결 리소스를 종료할 때
-    conn.close()
+    # Insert the data into the database
+    insert_into_database(stuNum, stuName, menu, subject, input_text, result)
+
     return templates.TemplateResponse("result.html", {"request": request, "result": result})
 
 @app.post("/run_code4")
@@ -218,16 +193,9 @@ async def run_code(
     )
     result = completion.choices[0].message.content
 
-    #db호출   # 민수쌤 코드
-    conn, c = create_connection()
-    c.execute("insert into stuQuestions(stuNum, stuName, menu, stuAsk, chatbotAnswer) values(?,?,?,?,?)",
-            (stuNum, stuName, menu, input_text, result))
-    c.fetchall()
-    conn.commit()
-    # 다 사용한 커서 객체를 종료할 때
-    c.close()
-    # 연결 리소스를 종료할 때
-    conn.close()
+    # Insert the data into the database
+    insert_into_database(stuNum, stuName, menu, subject, input_text, result)
+
     return templates.TemplateResponse("result.html", {"request": request, "result": result})
 
 @app.websocket("/ws")
@@ -235,6 +203,75 @@ async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
     # WebSocket 연결이 설정되면, 해당 연결을 처리할 로직을 작성합니다.
 
+async def process_row(row, client):
+    stuNum = row['학번']
+    stuName = row['이름']
+    subject = row['과목 선택']
+    achievement_criteria = row['성취기준']
+    grades = row['성적']
+    report = row['보고서 내용']
+    remarks = row['비고']
+    menu = "과세특"  # 이 값은 예시입니다. 실제 상황에 맞게 조정해야 합니다.
+
+    # Define the path to the achievement criteria text file based on the selected subject.
+    achievement_criteria_file = f"./doc/{subject}.txt"
+
+    # Check if the file exists and read its content.
+    if os.path.isfile(achievement_criteria_file):
+        with open(achievement_criteria_file, "r", encoding="utf-8") as file:
+            achievement_criteria = file.read()
+
+    # Combine the input from all fields into a single string if needed.
+    input_text = f"교과목: {subject}\n성취기준: {achievement_criteria}\n성적: {grades}\n보고서 내용: {report}\n비고: {remarks}"
+
+    # OpenAI GPT-4 model call
+    try:
+        completion = client.chat.completions.create(
+            model="gpt-4-1106-preview",
+            messages=[
+                {"role": "system", "content": "I ensure responses are efficient, without the need for 'continue generating', and manage response length for effective communication."},
+                {"role": "system", "content": "The GPT is attentive to details, adheres to educational standards, and uses a respectful, encouraging tone."},
+                {"role": "system", "content": "성취기준의 번호([9정02-01])는 답변에서 제거해주고 구체적 점수를 표현하지마."},
+                {"role": "system", "content": "성취기준을 그래로 작성 하지 말고, 학생의 활동이 성취 기준에 있다면 그 내용을 자세히 기술해줘."},
+                {"role": "system", "content": "성취기준에 있는 내용을 활동하지 않았다면 성취기준을 적을 필요는 없어."},
+                {"role": "system", "content": "책을 읽은 독서 활동이 있으면 '책이름(저자)'를 꼭 표시해줘. 예를 들어 '코드 브레이커(월터 아이작슨)'를 읽고 ~ 이렇게"},
+                {"role": "system", "content": "오렌지3, orange3, 티처블머신, teachable machine 와 같은 실제 명칭을 쓰지말고 일반적인 언어로 표현해줘."},
+                {"role": "system", "content": "지역, 단체 명을 일반적인 언어로 표현해줘."},
+                {"role": "system", "content": "주어는 가급적 생략해줘. 예를 들어, '내가', '학생이', '나는'와 같은 표현은 생략해도 돼."},
+                {"role": "system", "content": "글쓴이의 입장이 아닌 3인칭 관찰자의 입장으로 작성해줘."},
+                {"role": "system", "content": "글쓰기 전문가의 역할을 해주고, 글자수는 약 400-500자 내외로 하고, 한 문단으로 된 잘 정돈된 글을 써줘."},
+                {"role": "system", "content": "비고의 내용은 꼭 지켜줘."},
+                {"role": "system", "content": "음슴체 형식으로 써줘. 음슴체는 문체 이름 그대로 '~음'으로 끝난다. 다만 표준어법에서 '-슴'으로 쓸 수는 없다. 다만 반드시 '-음'으로만 끝나는 것은 아니고 동사의 종류에 따라 형태는 바뀔 수 있다. 어쨌거나 명사형 어미 '-ㅁ'을 쓰므로 종성이 ㅁ으로 끝난다. 명사 종결문도 흔히 같이 쓰인다. 엄격히 음슴체로 가자면 이때에도 '-임.'으로 써야 할 것이다. '-ㄴ 듯', '-ㄹ 듯'으로 끝나는 말투도 자주 쓰인다. '하셈'도 음슴체로 볼 여지가 있다. 단, 다른 음슴체가 어간에 '-ㅁ'이 결합하는 데에 비해 '하셈'은 '하세'가 어간은 아니라는 점에서 차이가 있다. 하지만 어간 + '-ㅁ' 류의 음슴체에는 명령형이 없으므로 '하셈'이 명령형의 용법으로 자주 쓰이곤 한다. 엄밀히 비교해보자면 하셈체는 약간 더 어린 계층이 쓴다는 인식이 강한 편이다."},
+                {"role": "user", "content": input_text}
+            ]
+        )
+        result = completion.choices[0].message.content
+
+        # Database insertion logic
+        c.execute("insert into stuQuestions(stuNum, stuName, menu, subject, stuAsk, chatbotAnswer) values(?,?,?,?,?,?)",
+            (stuNum, stuName, menu, subject, input_text, result))
+        
+
+    except Exception as e:
+        print(f"Error processing row: {e}")
+        # 여기에 오류 처리 로직 추가
+
+async def read_csv_and_insert_to_db1(csv_file: UploadFile):
+    conn, c = create_connection()
+
+    contents = await csv_file.read()
+    text_file = io.StringIO(contents.decode('utf-8'))
+    csvreader = csv.DictReader(text_file)
+
+    tasks = [process_row(row, client) for row in csvreader]
+    await asyncio.gather(*tasks)
+    
+    c.fetchall()
+    conn.commit()
+    c.close()
+    conn.close()
+
+"""
 async def read_csv_and_insert_to_db1(csv_file: UploadFile):
     
     contents = await csv_file.read()
@@ -298,7 +335,7 @@ async def read_csv_and_insert_to_db1(csv_file: UploadFile):
 
         # Insert the data into the database
         insert_into_database(stuNum, stuName, menu, subject, input_text, result)
-
+"""    
 async def read_csv_and_insert_to_db2(csv_file: UploadFile):
 
     contents = await csv_file.read()
