@@ -284,16 +284,16 @@ async def read_csv_and_insert_to_db1(csv_file: UploadFile):
         print(f"Progress: {progress}%, {count}/{total_rows}개 완료")
 
         # 토큰 당 가격 설정 (예시 값, 실제 가격은 확인 필요)
-        token_price = 0.0001  # 예를 들어, 토큰 당 0.0001달러라고 가정
+        # token_price = 0.0001  # 예를 들어, 토큰 당 0.0001달러라고 가정
 
         # 총 토큰 수
-        total_tokens = completion["usage"]["total_tokens"]
+        # total_tokens = completion["usage"]["total_tokens"]
 
         # 요금 계산
-        cost = total_tokens * token_price
-        total_cost += cost
+        # cost = total_tokens * token_price
+        # total_cost += cost
 
-        print(f"Total tokens used: {total_tokens}")
+        # print(f"Total tokens used: {total_tokens}")
 
         # Insert the data into the database
         conn, c = create_connection()
