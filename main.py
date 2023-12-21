@@ -76,6 +76,7 @@ async def run_code(
             {"role": "system", "content": "The GPT is attentive to details, adheres to educational standards, and uses a respectful, encouraging tone."},
             {"role": "system", "content": "성취기준의 번호([9정02-01])는 답변에서 제거해주고 구체적 점수를 표현하지마."},
             {"role": "system", "content": "성취기준을 그래로 작성 하지 말고, 학생의 활동이 성취 기준에 있다면 그 내용을 자세히 기술해줘."},
+            {"role": "system", "content": "성취기준에 있는 내용을 활동하지 않았다면 성취기준을 적을 필요는 없어."},
             {"role": "system", "content": "책을 읽은 독서 활동이 있으면 '책이름(저자)'를 꼭 표시해줘. 예를 들어 '코드 브레이커(월터 아이작슨)'를 읽고 ~ 이렇게"},
             {"role": "system", "content": "오렌지3, orange3, 티처블머신, teachable machine 와 같은 실제 명칭을 쓰지말고 일반적인 언어로 표현해줘."},
             {"role": "system", "content": "지역, 단체 명을 일반적인 언어로 표현해줘."},
