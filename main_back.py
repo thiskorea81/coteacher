@@ -1,19 +1,14 @@
-import os
-import io
-import time
-import csv
-import asyncio
-import uuid
-from fastapi import FastAPI, Request, Form, File, UploadFile, WebSocket
-from openai import Client
+from fastapi import FastAPI, Request, Form, File, UploadFile
 from openai import OpenAI
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse, FileResponse  # Import FileResponse
+from fastapi.responses import HTMLResponse, FileResponse
 from starlette.responses import RedirectResponse
-from asyncio import create_task
 import sqlite3 as sq
 import pandas as pd
+import os
+import io
+import csv
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
@@ -29,19 +24,60 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 client = OpenAI()
 
-#LOCAL DB 연결
-def create_connection():
+# 데이터베이스 연결 의존성
+def get_db_connection():
     conn = sq.connect("user_database.db", check_same_thread=False)
-    c = conn.cursor()
-    return conn, c
+    try:
+        yield conn
+    finally:
+        conn.close()
 
-#FLASK 실행시 최초 DB생성을 위한 부분
-conn, c = create_connection()
-
-c.execute('''create table IF NOT EXISTS stuQuestions(id integer PRIMARY KEY AUTOINCREMENT, 
+# 데이터베이스 연결 설정
+@app.on_event("startup")
+async def startup():
+    app.state.connection = sq.connect("user_database.db", check_same_thread=False)
+    with app.state.connection:
+        cursor = app.state.connection.cursor()
+        cursor.execute('''create table IF NOT EXISTS stuQuestions(id integer PRIMARY KEY AUTOINCREMENT, 
         stuNum text, stuName text, menu text, subject text, stuAsk TEXT, chatbotAnswer text)''')
-c.close() #커서 종료
-conn.close() #커넥션 종료
+        app.state.connection.commit()
+
+# 데이터베이스 연결 해제
+@app.on_event("shutdown")
+async def shutdown():
+    app.state.connection.close()
+
+# 이제 app.state.connection을 통해 데이터베이스 연결에 접근할 수 있습니다.
+# 예: conn = app.state.connection
+
+# 공통 처리 함수
+async def process_submission(input_data, menu, db_conn):
+    # 처리 로직
+    # ...
+    completion = client.chat.completions.create(model="gpt-4-1106-preview", ...)
+    c = db_conn.cursor()
+    c.execute("INSERT INTO stuQuestions ... ", (input_data['student_number'], ...))
+    db_conn.commit()
+
+# 공통된 엔드포인트 구조
+@app.post("/run_code/{menu}")
+async def run_code(request: Request, menu: str, student_number: str = Form(...), ...):
+    input_data = {
+        "student_number": student_number,
+        # ... 다른 필드
+    }
+    conn = next(get_db_connection())
+    await process_submission(input_data, menu, conn)
+    # ...
+    return templates.TemplateResponse("result.html", {"request": request, "result": result})
+
+# 나머지 엔드포인트도 이와 유사한 구조로 구현
+# ...
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+
 
 @app.post("/run_code1")
 async def run_code(
@@ -69,7 +105,7 @@ async def run_code(
     # Combine the input from all fields into a single string if needed.
     input_text = f"교과목: {subject}\n성취기준: {achievement_criteria}\n성적: {grades}\n보고서 내용: {report}"
 
-    completion = client.chat.completions.create(
+    completion = client1.chat.completions.create(
         model="gpt-4-1106-preview",
         messages=[
             {"role": "system", "content": "I ensure responses are efficient, without the need for 'continue generating', and manage response length for effective communication."},
@@ -114,7 +150,7 @@ async def run_code(
     stuName = name
     menu = "자율진로"
     subject = subject
-    completion = client.chat.completions.create(
+    completion = client2.chat.completions.create(
         model="gpt-4-1106-preview",
         messages=[
             #{"role": "system", "content": "I ensure responses are efficient, without the need for 'continue generating', and manage response length for effective communication."},
@@ -155,7 +191,7 @@ async def run_code(
     stuName = name
     menu = "행동발달"
     subject = "행동발달"
-    completion = client.chat.completions.create(
+    completion = client3.chat.completions.create(
         model="gpt-4-1106-preview",
         messages=[
             {"role": "system", "content": "I ensure responses are efficient, without the need for 'continue generating', and manage response length for effective communication."},
@@ -194,7 +230,7 @@ async def run_code(
     stuNum = student_number
     stuName = name
     menu = "검토"
-    completion = client.chat.completions.create(
+    completion = client4.chat.completions.create(
         model="gpt-4-1106-preview",
         messages=[
             {"role": "system", "content": "As 'Literary Mentor', I now specialize in evaluating and editing Korean text provided in Excel files. My role involves assessing grammar, vocabulary, expression, sentence structure, composition, and ideas. I will provide a grade from A+ to F, along with customized comments. I will also offer overall summaries and advice. When editing paragraphs, I'll make suggestions for revisions and improvements. I consider any specific format constraints as non-errors and determine if the text was generated by a GPT. My feedback is both encouraging and professional. I respond to queries in Korean, providing concise and clear answers. I now also handle data from Excel files where the first column is student numbers, the second is names, the third is the text of the school record, and the fourth is the byte count. I use this information for tailored feedback."},
@@ -217,25 +253,20 @@ async def run_code(
     conn.close()
     return templates.TemplateResponse("result.html", {"request": request, "result": result})
 
-@app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket):
-    await websocket.accept()
-    # WebSocket 연결이 설정되면, 해당 연결을 처리할 로직을 작성합니다.
+# read_csv_and_insert_to_db 를 위한 전역변수
+processing_status = {}
 
 async def read_csv_and_insert_to_db1(csv_file: UploadFile):
-    
+    conn, c = create_connection()
+
     contents = await csv_file.read()
     text_file = io.StringIO(contents.decode('utf-8'))
     
     csvreader = csv.DictReader(text_file)
 
-    total_rows = sum(1 for row in csvreader)  # 전체 행 수 계산
-    text_file.seek(0)  # 파일 포인터를 다시 시작 위치로 옮김
-    csvreader = csv.DictReader(text_file)  # 다시 읽기
-    count = 0
-    total_cost = 0
+    for row in csvreader:
 
-    for row in csvreader: 
+        client = OpenAI() 
 
         stuNum = row['학번']
         stuName = row['이름']
@@ -244,8 +275,7 @@ async def read_csv_and_insert_to_db1(csv_file: UploadFile):
         grades = row['성적']
         report = row['보고서 내용']
         remarks = row['비고']
-        menu = "과세특"
-        result = "결과"
+        menu="과세특"
 
         # Define the path to the achievement criteria text file based on the selected subject.
         achievement_criteria_file = f"./doc/{subject}.txt"
@@ -257,7 +287,7 @@ async def read_csv_and_insert_to_db1(csv_file: UploadFile):
 
         # Combine the input from all fields into a single string if needed.
         input_text = f"교과목: {subject}\n성취기준: {achievement_criteria}\n성적: {grades}\n보고서 내용: {report}\n비고: {remarks}"
-        
+
         completion = client.chat.completions.create(
             model="gpt-4-1106-preview",
             messages=[
@@ -277,50 +307,27 @@ async def read_csv_and_insert_to_db1(csv_file: UploadFile):
             ]
         )
         result = completion.choices[0].message.content
-        
-        count += 1
-        progress = (count / total_rows) * 100
-        print(f"Progress: {progress}%, {count}/{total_rows}개 완료")
-
-        # 토큰 당 가격 설정 (예시 값, 실제 가격은 확인 필요)
-        token_price = 0.0001  # 예를 들어, 토큰 당 0.0001달러라고 가정
-
-        # 총 토큰 수
-        total_tokens = completion["usage"]["total_tokens"]
-
-        # 요금 계산
-        cost = total_tokens * token_price
-        total_cost += cost
-
-        print(f"Total tokens used: {total_tokens}")
 
         # Insert the data into the database
-        conn, c = create_connection()
-
         c.execute("insert into stuQuestions(stuNum, stuName, menu, subject, stuAsk, chatbotAnswer) values(?,?,?,?,?,?)",
                 (stuNum, stuName, menu, subject, input_text, result))
-        c.fetchall()
-        conn.commit()
-        c.close()
-        conn.close()
-    print(f"Estimated cost: ${total_cost:.4f}")
-
-
-async def read_csv_and_insert_to_db2(csv_file: UploadFile, websocket: WebSocket):
     
+    conn.commit()
+    c.close()
+    conn.close()
+
+async def read_csv_and_insert_to_db2(csv_file: UploadFile):
     
+    conn, c = create_connection()
 
     contents = await csv_file.read()
     text_file = io.StringIO(contents.decode('utf-8'))
     
     csvreader = csv.DictReader(text_file)
-
-    total_rows = sum(1 for row in csvreader)  # 전체 행 수 계산
-    text_file.seek(0)  # 파일 포인터를 다시 시작 위치로 옮김
-    csvreader = csv.DictReader(text_file)  # 다시 읽기
-
     count = 0
     for row in csvreader:
+
+        client = OpenAI() 
 
         stuNum = row['학번']
         stuName = row['이름']
@@ -350,32 +357,27 @@ async def read_csv_and_insert_to_db2(csv_file: UploadFile, websocket: WebSocket)
         )
         result = completion.choices[0].message.content
         count += 1
-        progress = (count / total_rows) * 100
-        print(f"Progress: {progress}%, {count}/{total_rows}개 완료")
+        print(f"{count}개 완료")
         # Insert the data into the database
-        conn, c = create_connection()
         c.execute("insert into stuQuestions(stuNum, stuName, menu, subject, stuAsk, chatbotAnswer) values(?,?,?,?,?,?)",
                 (stuNum, stuName, menu, subject, input_text, result))
-        c.fetchall()
-        conn.commit()
-        c.close()
-        conn.close()
+    
+    conn.commit()
+    c.close()
+    conn.close()
     print("완료")
     
 async def read_csv_and_insert_to_db3(csv_file: UploadFile):
-    
+    conn, c = create_connection()
 
     contents = await csv_file.read()
     text_file = io.StringIO(contents.decode('utf-8'))
     
     csvreader = csv.DictReader(text_file)
-    total_rows = sum(1 for row in csvreader)  # 전체 행 수 계산
-    text_file.seek(0)  # 파일 포인터를 다시 시작 위치로 옮김
-    csvreader = csv.DictReader(text_file)  # 다시 읽기
-
-    count = 0
 
     for row in csvreader:
+
+        client = OpenAI() 
 
         stuNum = row['학번']
         stuName = row['이름']
@@ -409,18 +411,14 @@ async def read_csv_and_insert_to_db3(csv_file: UploadFile):
             ]
         )
         result = completion.choices[0].message.content
-        count += 1
-        progress = (count / total_rows) * 100
-        print(f"Progress: {progress}%, {count}/{total_rows}개 완료")
 
         # Insert the data into the database
-        conn, c = create_connection()
         c.execute("insert into stuQuestions(stuNum, stuName, menu, subject, stuAsk, chatbotAnswer) values(?,?,?,?,?,?)",
                 (stuNum, stuName, menu, subject, input_text, result))
-        c.fetchall()
-        conn.commit()
-        c.close()
-        conn.close()
+    
+    conn.commit()
+    c.close()
+    conn.close()
 
 @app.get("/upload_csv_page", response_class=HTMLResponse)
 async def upload_csv_page(request: Request):
@@ -501,6 +499,16 @@ async def nav4(request: Request):
 @app.get("/loading", response_class=HTMLResponse)
 async def loading():
     return RedirectResponse("/loading.html")
+
+@app.websocket("/ws/{file_id}")
+async def websocket_endpoint(websocket: WebSocket, file_id: str):
+    await websocket.accept()
+    while True:
+        if file_id in processing_status:
+            await websocket.send_text(processing_status[file_id])
+            if processing_status[file_id] == "처리 완료":
+                break
+        await asyncio.sleep(1)  # 상태 확인 간격
 
 def clear_database():
     conn, c = create_connection()
