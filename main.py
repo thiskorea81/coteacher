@@ -43,6 +43,18 @@ c.execute('''create table IF NOT EXISTS stuQuestions(id integer PRIMARY KEY AUTO
 c.close() #커서 종료
 conn.close() #커넥션 종료
 
+def insert_into_database(stuNum, stuName, menu, subject, input_text, result):
+    #db호출   # 민수쌤 코드
+    conn, c = create_connection()
+    c.execute("insert into stuQuestions(stuNum, stuName, menu, subject, stuAsk, chatbotAnswer) values(?,?,?,?,?,?)",
+            (stuNum, stuName, menu, subject, input_text, result))
+    c.fetchall()
+    conn.commit()
+    # 다 사용한 커서 객체를 종료할 때
+    c.close()
+    # 연결 리소스를 종료할 때
+    conn.close()
+
 @app.post("/run_code1")
 async def run_code(
     request: Request,
@@ -281,35 +293,12 @@ async def read_csv_and_insert_to_db1(csv_file: UploadFile):
         
         count += 1
         progress = (count / total_rows) * 100
-        print(f"Progress: {progress}%, {count}/{total_rows}개 완료")
-
-        # 토큰 당 가격 설정 (예시 값, 실제 가격은 확인 필요)
-        # token_price = 0.0001  # 예를 들어, 토큰 당 0.0001달러라고 가정
-
-        # 총 토큰 수
-        # total_tokens = completion["usage"]["total_tokens"]
-
-        # 요금 계산
-        # cost = total_tokens * token_price
-        # total_cost += cost
-
-        # print(f"Total tokens used: {total_tokens}")
+        print(f"Progress: {progress:.2f}%, {count}/{total_rows}개 완료")
 
         # Insert the data into the database
-        conn, c = create_connection()
+        insert_into_database(stuNum, stuName, menu, subject, input_text, result)
 
-        c.execute("insert into stuQuestions(stuNum, stuName, menu, subject, stuAsk, chatbotAnswer) values(?,?,?,?,?,?)",
-                (stuNum, stuName, menu, subject, input_text, result))
-        c.fetchall()
-        conn.commit()
-        c.close()
-        conn.close()
-    print(f"Estimated cost: ${total_cost:.4f}")
-
-
-async def read_csv_and_insert_to_db2(csv_file: UploadFile, websocket: WebSocket):
-    
-    
+async def read_csv_and_insert_to_db2(csv_file: UploadFile):
 
     contents = await csv_file.read()
     text_file = io.StringIO(contents.decode('utf-8'))
@@ -352,15 +341,9 @@ async def read_csv_and_insert_to_db2(csv_file: UploadFile, websocket: WebSocket)
         result = completion.choices[0].message.content
         count += 1
         progress = (count / total_rows) * 100
-        print(f"Progress: {progress}%, {count}/{total_rows}개 완료")
+        print(f"Progress: {progress:.2f}%, {count}/{total_rows}개 완료")
         # Insert the data into the database
-        conn, c = create_connection()
-        c.execute("insert into stuQuestions(stuNum, stuName, menu, subject, stuAsk, chatbotAnswer) values(?,?,?,?,?,?)",
-                (stuNum, stuName, menu, subject, input_text, result))
-        c.fetchall()
-        conn.commit()
-        c.close()
-        conn.close()
+        insert_into_database(stuNum, stuName, menu, subject, input_text, result)
     print("완료")
     
 async def read_csv_and_insert_to_db3(csv_file: UploadFile):
@@ -412,16 +395,9 @@ async def read_csv_and_insert_to_db3(csv_file: UploadFile):
         result = completion.choices[0].message.content
         count += 1
         progress = (count / total_rows) * 100
-        print(f"Progress: {progress}%, {count}/{total_rows}개 완료")
-
+        print(f"Progress: {progress:.2f}%, {count}/{total_rows}개 완료")
         # Insert the data into the database
-        conn, c = create_connection()
-        c.execute("insert into stuQuestions(stuNum, stuName, menu, subject, stuAsk, chatbotAnswer) values(?,?,?,?,?,?)",
-                (stuNum, stuName, menu, subject, input_text, result))
-        c.fetchall()
-        conn.commit()
-        c.close()
-        conn.close()
+        insert_into_database(stuNum, stuName, menu, subject, input_text, result)
 
 @app.get("/upload_csv_page", response_class=HTMLResponse)
 async def upload_csv_page(request: Request):
