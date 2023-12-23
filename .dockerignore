@@ -1,0 +1,7 @@
+.venv
+.env
+.git
+*.db
+result
+question.csv
+__pycache__

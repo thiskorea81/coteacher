@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>개별 활동 작성</title>
+    <title>생기부 과세특 작성</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -12,7 +12,7 @@
             padding: 0;
         }
 
-        h2 {
+        h1 {
             text-align: center;
             background-color: #007bff;
             color: white;
@@ -119,29 +119,12 @@
         <img src="img/loading.gif" alt="loading">
     </div>
     <div class="container">
-        <form id="csvForm" onsubmit="return submitForm(event, '/upload_csv4');">
-            <label for="csv_file">CSV 파일 선택:</label>
-            <input type="file" id="csv_file" name="csv_file" accept=".csv" required>
-            <button type="submit">업로드</button>
-            <a href="/csv_sample/upload_csv_sample_1.csv" download="upload_csv_sample_1.csv">샘플 파일 다운로드</a>
-
-        </form></div>
-    <div class="container">
-        <form id="codeForm" onsubmit="return submitForm(event, '/run_code4');">
+        <form id="codeForm" onsubmit="return submitForm(event, '/run_code5');">
             <label for="student_number">학번:</label>
             <input type="text" id="student_number" name="student_number" placeholder="학번을 입력하세요." required>
 
             <label for="name">이름:</label>
             <input type="text" id="name" name="name" placeholder="이름을 입력하세요." required>
-
-            <label for="subject">과목:</label>
-            <input type="text" id="subject" name="subject" placeholder="이름을 입력하세요." required>
-
-            <label for="achievement_criteria">성취수준:</label>
-            <input type="text" id="achievement_criteria" name="achievement_criteria" placeholder="성취수준을 입력하세요." required>
-
-            <label for="grades">성적:</label>
-            <textarea name="grades" rows="1" cols="40" placeholder="성적을 입력하세요." required></textarea>
             
             <label for="report">보고서 내용:</label>
             <textarea name="report" rows="5" cols="40" placeholder="보고서 내용을 입력하세요." required></textarea>
