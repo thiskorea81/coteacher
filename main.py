@@ -599,7 +599,7 @@ async def upload_csv(csv_file: UploadFile = File(...)):
     menu = 2
     # Check if a CSV file was uploaded
     if csv_file:
-        await read_csv_and_insert_to_db2(csv_file)
+        await read_csv_and_insert_to_db(csv_file, menu)
 
     return {"message": "CSV file uploaded and processed successfully"}
 
@@ -608,7 +608,7 @@ async def upload_csv(csv_file: UploadFile = File(...)):
     menu = 3
     # Check if a CSV file was uploaded
     if csv_file:
-        await read_csv_and_insert_to_db3(csv_file)
+        await read_csv_and_insert_to_db(csv_file, menu)
 
     return {"message": "CSV file uploaded and processed successfully"}
 
