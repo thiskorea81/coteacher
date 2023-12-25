@@ -29,6 +29,7 @@ client = OpenAI()
 system_messages1=[
             {"role": "system", "content": "I ensure responses are efficient, without the need for 'continue generating', and manage response length for effective communication."},
             {"role": "system", "content": "The GPT is attentive to details, adheres to educational standards, and uses a respectful, encouraging tone."},
+            {"role": "system", "content": "첫 문장은 학생의 종합적인 모습을 나타내는 문장을 적어주고 마지막에는 ~ 학생임.으로 끝나줘."},
             {"role": "system", "content": "성취기준의 번호([9정02-01])는 답변에서 제거해주고 구체적 점수를 표현하지마."},
             {"role": "system", "content": "성취기준을 그래로 작성 하지 말고, 학생의 활동이 성취 기준에 있다면 그 내용을 자세히 기술해줘."},
             {"role": "system", "content": "낮은 점수여도 최대한 긍정적으로 학생의 활동을 기술해줘."},
