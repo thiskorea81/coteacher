@@ -274,7 +274,7 @@ async def process_row1(row, client):
 
     # Combine the input from all fields into a single string if needed.
     input_text = f"교과목: {subject}\n성취기준: {achievement_criteria}\n성적: {grades}\n보고서 내용: {report}\n비고: {remarks}"
-
+    print(f"{stuName} input done")
     # OpenAI GPT-4 model call
     try:
         completion = client.chat.completions.create(
@@ -283,15 +283,8 @@ async def process_row1(row, client):
         )
         result = completion.choices[0].message.content
 
-        # Database insertion logic
-        conn, c = create_connection()
-        c.execute("insert into stuQuestions(stuNum, stuName, menu, subject, stuAsk, chatbotAnswer) values(?,?,?,?,?,?)",
-            (stuNum, stuName, menu, subject, input_text, result))
-        
-        c.fetchall()
-        conn.commit()
-        c.close()
-        conn.close()
+        # Insert the data into the database
+        insert_into_database(stuNum, stuName, menu, subject, input_text, result)
         print(f"{stuName} process done")
         
     except Exception as e:
@@ -320,15 +313,8 @@ async def process_row2(row, client):
         )
         result = completion.choices[0].message.content
         
-        # Database insertion logic
-        conn, c = create_connection()
-        c.execute("insert into stuQuestions(stuNum, stuName, menu, subject, stuAsk, chatbotAnswer) values(?,?,?,?,?,?)",
-            (stuNum, stuName, menu, subject, input_text, result))
-        
-        c.fetchall()
-        conn.commit()
-        c.close()
-        conn.close()
+        # Insert the data into the database
+        insert_into_database(stuNum, stuName, menu, subject, input_text, result)
         
     except Exception as e:
         print(f"Error processing row: {e}")
@@ -356,15 +342,8 @@ async def process_row3(row, client):
         )
         result = completion.choices[0].message.content
 
-        # Database insertion logic
-        conn, c = create_connection()
-        c.execute("insert into stuQuestions(stuNum, stuName, menu, subject, stuAsk, chatbotAnswer) values(?,?,?,?,?,?)",
-            (stuNum, stuName, menu, subject, input_text, result))
-        
-        c.fetchall()
-        conn.commit()
-        c.close()
-        conn.close()
+        # Insert the data into the database
+        insert_into_database(stuNum, stuName, menu, subject, input_text, result)
         
     except Exception as e:
         print(f"Error processing row: {e}")
@@ -393,14 +372,8 @@ async def process_row4(row, client):
         )
         result = completion.choices[0].message.content
 
-        # Database insertion logic
-        c.execute("insert into stuQuestions(stuNum, stuName, menu, subject, stuAsk, chatbotAnswer) values(?,?,?,?,?,?)",
-            (stuNum, stuName, menu, subject, input_text, result))
-        
-        c.fetchall()
-        conn.commit()
-        c.close()
-        conn.close()
+        # Insert the data into the database
+        insert_into_database(stuNum, stuName, menu, subject, input_text, result)
         
     except Exception as e:
         print(f"Error processing row: {e}")
