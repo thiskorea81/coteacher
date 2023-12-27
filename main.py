@@ -252,6 +252,27 @@ async def run_code(
 
     return templates.TemplateResponse("result.html", {"request": request, "result": result})
 
+@app.post("/run_code6")
+async def run_code(
+    request: Request,
+    report: str = Form(...)
+):
+    input_text = f"{report}"
+    response = client.audio.speech.create(
+        model="tts-1",
+        voice="alloy",
+        input=input_text,
+    )
+    # 파일명에 고유 식별자 추가하여 파일 이름 중복을 방지
+    unique_filename = f"output_{uuid.uuid4().hex}.mp3"
+    output_file_path = os.path.join('static', unique_filename)
+    response.stream_to_file(output_file_path)
+
+    # 오디오 파일 URL 생성
+    audio_url = f"/static/{unique_filename}"
+
+    return templates.TemplateResponse("result_tts.html", {"request": request, "audio_url": audio_url})
+
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
@@ -466,6 +487,27 @@ async def export():
     df.to_csv('result.csv', encoding='utf-8')    #구글문서에서 열면 한글이 깨지지 않고 보임
     return FileResponse('result.csv', media_type='text/csv', filename='result.csv')
 
+@app.post("/run_code_txt")
+async def run_code(request: Request, file: UploadFile = File(...)):
+    # 파일 내용을 읽기
+    content = await file.read()
+    # 파일 내용을 문자열로 변환
+    text = content.decode("utf-8")
+
+    # 음성 변환 수행
+    response = client.audio.speech.create(
+        model="tts-1",
+        voice="alloy",
+        input=text,
+    )
+
+    unique_filename = f"output_{uuid.uuid4().hex}.mp3"
+    output_file_path = os.path.join('static', unique_filename)
+    response.stream_to_file(output_file_path)
+
+    audio_url = f"/static/{unique_filename}"
+    return templates.TemplateResponse("result_tts.html", {"request": request, "audio_url": audio_url})
+
 @app.get("/")
 async def home(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
@@ -493,6 +535,10 @@ async def nav4(request: Request):
 @app.get("/nav5", response_class=HTMLResponse)
 async def nav5(request: Request):
     return templates.TemplateResponse("nav5.html", {"request": request})
+
+@app.get("/nav6", response_class=HTMLResponse)
+async def nav6(request: Request):
+    return templates.TemplateResponse("nav6.html", {"request": request})
 
 # Loading route that redirects to the loading.html page during initialization
 @app.get("/loading", response_class=HTMLResponse)
