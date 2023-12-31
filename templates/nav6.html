@@ -138,7 +138,10 @@
             <source src="{{ audio_url }}" type="audio/mpeg">
             브라우저가 오디오를 지원하지 않습니다.
         </audio>
-        <button onclick="window.history.back();">뒤로 가기</button>
+        <!-- 다운로드 버튼 -->
+        <a href="{{ audio_url }}" download="converted_audio.mp3">
+            <button type="button">Download Audio</button>
+        </a>
     </div>
 </body>
 </html>
