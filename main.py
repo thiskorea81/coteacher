@@ -68,6 +68,62 @@ def fetch_and_summarize_news(url):
 
     return summary
 
+# 급식안내
+from datetime import datetime
+from html_table_parser import parser_functions as parser
+
+def get_html(url):
+   _html = ""
+   resp = requests.get(url)
+   if resp.status_code == 200:
+      _html = resp.text
+   return _html
+ 
+ 
+def get_diet(scode, code, ymd):
+    schulCode = scode
+    schMmealScCode = code #int    #1아침, 2점심, 3저녁
+    schYmd = ymd #str             #일자($Y.$m.$d)
+    
+    URL = (
+            "http://stu.cbe.go.kr/sts_sci_md01_001.do?"
+            "schulCode=%s&schulCrseScCode=4&schulKndScCode=04"
+            "&schMmealScCode=%d&schYmd=%s" % (schulCode, schMmealScCode, schYmd)
+        )
+    html = get_html(URL)
+    soup = BeautifulSoup(html, 'html.parser')
+    temp = soup.find_all('table')
+    p=parser.make2d(temp[0])
+    #df=pd.DataFrame(p[1:])
+    df=pd.DataFrame(p)
+
+    return df
+
+def get_today_diet(scode):
+    ymd = datetime.now().strftime("%Y.%m.%d")  # 오늘 날짜
+    lunch = get_diet(scode, 2, ymd)  # 점심
+    dinner = get_diet(scode, 3, ymd)  # 저녁
+
+    return lunch, dinner
+
+@app.post("/get_diet_audio")
+async def get_diet_audio(request: Request, school_code: str = Form(...)):
+    lunch, dinner = get_today_diet(school_code)
+    diet_text = f"오늘 점심 메뉴는 {lunch}이고, 저녁 메뉴는 {dinner}입니다."
+
+    # 음성 변환 수행
+    response = client.audio.speech.create(
+        model="tts-1",
+        voice="alloy",
+        input=diet_text,
+    )
+    unique_filename = f"diet_audio.mp3"
+    output_file_path = os.path.join('static', unique_filename)
+    response.stream_to_file(output_file_path)
+
+    audio_url = f"/static/{unique_filename}"
+    return templates.TemplateResponse("diet_page.html", {"request": request, "audio_url": audio_url})
+
 # 교과세특
 system_messages1=[
             {"role": "system", "content": "I ensure responses are efficient, without the need for 'continue generating', and manage response length for effective communication."},
