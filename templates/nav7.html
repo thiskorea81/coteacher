@@ -119,9 +119,9 @@
         <img src="img/loading.gif" alt="loading">
     </div>
     <div>
-        <form action="/summarize_and_convert" method="post">
+        <form id="codeForm" onsubmit="return submitForm(event, '/summarize_and_convert');">
             <input type="text" name="url" placeholder="뉴스 페이지 URL">
-            <input type="submit" value="요약 및 음성 변환">
+            <button type="submit">요약 및 음성 변환</button>
         </form>
     </div>
 

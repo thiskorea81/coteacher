@@ -118,7 +118,8 @@
     <div id="load">
         <img src="img/loading.gif" alt="loading">
     </div>
-    <form action="/get_diet_audio" method="post">
+    
+    <form id="codeForm" onsubmit="return submitForm(event, '/get_diet_audio');">
         <label for="school_code">학교 코드:</label>
         <input type="text" id="school_code" name="school_code" required>
         <input type="submit" value="급식 정보 가져오기">
