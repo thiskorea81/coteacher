@@ -264,7 +264,7 @@ async def run_code(
         input=input_text,
     )
     # 파일명에 고유 식별자 추가하여 파일 이름 중복을 방지
-    unique_filename = f"output_{uuid.uuid4().hex}.mp3"
+    unique_filename = f"output.mp3"
     output_file_path = os.path.join('static', unique_filename)
     response.stream_to_file(output_file_path)
 
@@ -501,7 +501,7 @@ async def run_code(request: Request, file: UploadFile = File(...)):
         input=text,
     )
 
-    unique_filename = f"output_{uuid.uuid4().hex}.mp3"
+    unique_filename = f"output.mp3"
     output_file_path = os.path.join('static', unique_filename)
     response.stream_to_file(output_file_path)
 
