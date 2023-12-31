@@ -271,7 +271,7 @@ async def run_code(
     # 오디오 파일 URL 생성
     audio_url = f"/static/{unique_filename}"
 
-    return templates.TemplateResponse("result_tts.html", {"request": request, "audio_url": audio_url})
+    return templates.TemplateResponse("nav6.html", {"request": request, "audio_url": audio_url})
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
@@ -506,7 +506,7 @@ async def run_code(request: Request, file: UploadFile = File(...)):
     response.stream_to_file(output_file_path)
 
     audio_url = f"/static/{unique_filename}"
-    return templates.TemplateResponse("result_tts.html", {"request": request, "audio_url": audio_url})
+    return templates.TemplateResponse("nav6.html", {"request": request, "audio_url": audio_url})
 
 @app.get("/")
 async def home(request: Request):
