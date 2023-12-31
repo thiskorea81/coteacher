@@ -63,16 +63,17 @@
     <nav>
       <!-- 각 페이지로의 링크를 설정합니다. -->
       <a href="{{ url_for('home') }}">[HOME]</a>        
-      <a href="{{ url_for('nav1') }}" target="main">[과세특작성]</a>
-      <a href="{{ url_for('nav2') }}" target="main">[자율진로작성]</a>
-      <a href="{{ url_for('nav3') }}" target="main">[행동발달작성]</a>
-      <a href="{{ url_for('nav4') }}" target="main">[개별활동 세특 작성]</a>  
-      <a href="{{ url_for('nav5') }}" target="main">[생기부검토]</a>  
-      <a href="{{ url_for('nav6') }}" target="main">[텍스트음성변환]</a>
+      <a href="{{ url_for('navigate', page_number=1) }}" target="main">[과세특작성]</a>
+      <a href="{{ url_for('navigate', page_number=2) }}" target="main">[자율진로작성]</a>
+      <a href="{{ url_for('navigate', page_number=3) }}" target="main">[행동발달작성]</a>
+      <a href="{{ url_for('navigate', page_number=4) }}" target="main">[개별활동 세특 작성]</a>  
+      <a href="{{ url_for('navigate', page_number=5) }}" target="main">[생기부검토]</a>  
+      <a href="{{ url_for('navigate', page_number=6) }}" target="main">[텍스트음성변환]</a>
+      <a href="{{ url_for('navigate', page_number=7) }}" target="main">[페이지요약]</a>
       <a href="{{ url_for('show_db') }}" target="main">[DB]</div></a>  
   </nav>
     <section>
-        <iframe src="{{ url_for('nav1') }}" name="main" frameborder="0"></iframe>
+        <iframe src="{{ url_for('navigate', page_number=1) }}" name="main" frameborder="0"></iframe>
     </section>    
     
     <footer>

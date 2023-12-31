@@ -14,6 +14,8 @@ from starlette.responses import RedirectResponse
 from asyncio import create_task
 import sqlite3 as sq
 import pandas as pd
+import requests
+from bs4 import BeautifulSoup  # HTML 내용을 파싱하기 위해 사용
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
@@ -24,6 +26,47 @@ app.mount("/img", StaticFiles(directory="img"), name="img")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 client = OpenAI()
+
+# 페이지 요약
+@app.post("/summarize_and_convert")
+async def summarize_and_convert(request: Request, url: str = Form(...)):
+    # 페이지 페이지 요약
+    news_content = fetch_and_summarize_news(url)
+    # 음성 변환
+    response = client.audio.speech.create(
+        model="tts-1",
+        voice="alloy",
+        input=news_content,
+    )
+    # 음성 파일 저장
+    unique_filename = f"news_audio.mp3"
+    output_file_path = os.path.join('static', unique_filename)
+    response.stream_to_file(output_file_path)
+
+    audio_url = f"/static/{unique_filename}"
+    return templates.TemplateResponse("nav7.html", {"request": request, "audio_url": audio_url, "summary": news_content})
+
+def fetch_and_summarize_news(url):
+    # 웹 페이지의 HTML 내용을 가져옴
+    response = requests.get(url)
+    html_content = response.text
+
+    # BeautifulSoup을 사용하여 본문 내용을 추출
+    soup = BeautifulSoup(html_content, 'html.parser')
+    paragraphs = soup.find_all('p')
+    text_content = ' '.join([p.get_text() for p in paragraphs])
+
+    # OpenAI API를 사용하여 내용 요약
+    summary_response = client.chat.completions.create(
+        model="gpt-4-1106-preview",
+        messages=[
+            {"role": "system", "content": "웹페이지를 요약해주는 역할을 하고 있고, 크롤링에서 쓸모없는 부분은 제외하고 요약해줘."},
+            {"role": "user", "content": f"요약: {text_content}"}
+        ]
+    )
+    summary = summary_response.choices[0].message.content
+
+    return summary
 
 # 교과세특
 system_messages1=[
@@ -516,29 +559,9 @@ async def home(request: Request):
 async def main(request: Request):
     return templates.TemplateResponse("main.html", {"request": request})
 
-@app.get("/nav1", response_class=HTMLResponse)
-async def nav1(request: Request):
-    return templates.TemplateResponse("nav1.html", {"request": request})
-
-@app.get("/nav2", response_class=HTMLResponse)
-async def nav2(request: Request):
-    return templates.TemplateResponse("nav2.html", {"request": request})
-
-@app.get("/nav3", response_class=HTMLResponse)
-async def nav3(request: Request):
-    return templates.TemplateResponse("nav3.html", {"request": request})
-
-@app.get("/nav4", response_class=HTMLResponse)
-async def nav4(request: Request):
-    return templates.TemplateResponse("nav4.html", {"request": request})
-
-@app.get("/nav5", response_class=HTMLResponse)
-async def nav5(request: Request):
-    return templates.TemplateResponse("nav5.html", {"request": request})
-
-@app.get("/nav6", response_class=HTMLResponse)
-async def nav6(request: Request):
-    return templates.TemplateResponse("nav6.html", {"request": request})
+@app.get("/nav{page_number}", response_class=HTMLResponse)
+async def navigate(request: Request, page_number: int):
+    return templates.TemplateResponse(f"nav{page_number}.html", {"request": request})
 
 # Loading route that redirects to the loading.html page during initialization
 @app.get("/loading", response_class=HTMLResponse)
