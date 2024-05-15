@@ -401,7 +401,7 @@ async def process_row1(row, client):
     # OpenAI GPT-4 model call
     try:
         completion = client.chat.completions.create(
-            model="gpt-4-1106-preview",
+            model="gpt-4o",
             messages=system_messages1 + [{"role": "user", "content": input_text}]
         )
         result = completion.choices[0].message.content
@@ -431,7 +431,7 @@ async def process_row2(row, client):
     # OpenAI GPT-4 model call
     try:
         completion = client.chat.completions.create(
-            model="gpt-4-1106-preview",
+            model="gpt-4o",
             messages=system_messages2 + [{"role": "user", "content": input_text}]
         )
         result = completion.choices[0].message.content
@@ -460,7 +460,7 @@ async def process_row3(row, client):
     # OpenAI GPT-4 model call
     try:
         completion = client.chat.completions.create(
-            model="gpt-4-1106-preview",
+            model="gpt-4o",
             messages=system_messages3 + [{"role": "user", "content": input_text}]
         )
         result = completion.choices[0].message.content
@@ -490,7 +490,7 @@ async def process_row4(row, client):
     # OpenAI GPT-4 model call
     try:
         completion = client.chat.completions.create(
-            model="gpt-4-1106-preview",
+            model="gpt-4o",
             messages=system_messages4 + [{"role": "user", "content": input_text}]
         )
         result = completion.choices[0].message.content
