@@ -236,7 +236,7 @@ async def run_code(
     input_text = f"교과목: {subject}\n성취기준: {achievement_criteria}\n성적: {grades}\n보고서 내용: {report}"
 
     completion = client.chat.completions.create(
-        model="gpt-4-1106-preview",
+        model="gpt-4o",
         messages=system_messages1 + [{"role": "user", "content": input_text}]
     )
     result = completion.choices[0].message.content
@@ -261,7 +261,7 @@ async def run_code(
     menu = "자율진로"
     subject = subject
     completion = client.chat.completions.create(
-        model="gpt-4-1106-preview",
+        model="gpt-4o",
         messages=system_messages2 + [{"role": "user", "content": input_text}]
     )
     result = completion.choices[0].message.content
@@ -287,7 +287,7 @@ async def run_code(
     menu = "행동발달"
     subject = "행동발달"
     completion = client.chat.completions.create(
-        model="gpt-4-1106-preview",
+        model="gpt-4o",
         messages=system_messages3 + [{"role": "user", "content": input_text}]
     )
     result = completion.choices[0].message.content
@@ -317,7 +317,7 @@ async def run_code(
     input_text = f"교과목: {subject}\n성취기준: {achievement_criteria}\n성적: {grades}\n보고서 내용: {report}"
 
     completion = client.chat.completions.create(
-        model="gpt-4-1106-preview",
+        model="gpt-4o",
         messages=system_messages4 + [{"role": "user", "content": input_text}]
     )
     result = completion.choices[0].message.content
@@ -341,7 +341,7 @@ async def run_code(
     menu = "검토"
     subject="검토"
     completion = client.chat.completions.create(
-        model="gpt-4-1106-preview",
+        model="gpt-4o",
         messages=system_messages_mentor + [{"role": "user", "content": input_text}]
     )
     result = completion.choices[0].message.content
