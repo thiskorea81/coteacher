@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>tts</title>
+    <title>transcriptions</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -118,25 +118,13 @@
     <div id="load">
         <img src="img/loading.gif" alt="loading">
     </div>
-    <div>
-        <form id="codeForm" onsubmit="return submitForm(event, '/summarize_and_convert');">
-            <input type="text" name="url" placeholder="뉴스 페이지 URL">
-            <button type="submit">요약 및 음성 변환</button>
-        </form>
-    </div>
-
-    <div>
-        <h2>뉴스 요약</h2>
-        <p>{{ summary }}</p>
-        <h2>음성 변환 결과</h2>
-        <audio controls autoplay>
-            <source src="{{ audio_url }}" type="audio/mpeg">
-            브라우저가 오디오를 지원하지 않습니다.
-        </audio>
-        <!-- 다운로드 버튼 -->
-        <a href="{{ audio_url }}" download="converted_audio.mp3">
-            <button type="button">Download Audio</button>
-        </a>
+    <div class="container">
+        <h1>Audio Transcription</h1>
+        <form id="codeForm" onsubmit="return submitForm(event, '/upload_audio');">
+        <label for="file">Select audio file:</label>
+        <input type="file" id="file" name="file" accept="audio/*" required>
+        <button type="submit">Upload</button>
+    </form>
     </div>
 </body>
 </html>

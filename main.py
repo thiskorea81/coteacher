@@ -4,7 +4,8 @@ import time
 import csv
 import asyncio
 import uuid
-from fastapi import FastAPI, Request, Form, File, UploadFile, WebSocket
+import json
+from fastapi import FastAPI, Request, Form, File, UploadFile, WebSocket, HTTPException
 from openai import Client
 from openai import OpenAI
 from fastapi.templating import Jinja2Templates
@@ -23,11 +24,12 @@ templates = Jinja2Templates(directory="templates")
 # staticFiles mount
 app.mount("/csv_sample", StaticFiles(directory="csv_sample"), name="csv_sample")
 app.mount("/img", StaticFiles(directory="img"), name="img")
+app.mount("/aud", StaticFiles(directory="aud"), name="aud")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 client = OpenAI()
 
-# 페이지 요약
+# 페이지 요약 nav8
 @app.post("/summarize_and_convert")
 async def summarize_and_convert(request: Request, url: str = Form(...)):
     # 페이지 페이지 요약
@@ -44,7 +46,7 @@ async def summarize_and_convert(request: Request, url: str = Form(...)):
     response.stream_to_file(output_file_path)
 
     audio_url = f"/static/{unique_filename}"
-    return templates.TemplateResponse("nav7.html", {"request": request, "audio_url": audio_url, "summary": news_content})
+    return templates.TemplateResponse("nav8.html", {"request": request, "audio_url": audio_url, "summary": news_content})
 
 def fetch_and_summarize_news(url):
     # 웹 페이지의 HTML 내용을 가져옴
@@ -67,62 +69,6 @@ def fetch_and_summarize_news(url):
     summary = summary_response.choices[0].message.content
 
     return summary
-
-# 급식안내
-from datetime import datetime
-from html_table_parser import parser_functions as parser
-
-def get_html(url):
-   _html = ""
-   resp = requests.get(url)
-   if resp.status_code == 200:
-      _html = resp.text
-   return _html
- 
- 
-def get_diet(scode, code, ymd):
-    schulCode = scode
-    schMmealScCode = code #int    #1아침, 2점심, 3저녁
-    schYmd = ymd #str             #일자($Y.$m.$d)
-    
-    URL = (
-            "http://stu.cbe.go.kr/sts_sci_md01_001.do?"
-            "schulCode=%s&schulCrseScCode=4&schulKndScCode=04"
-            "&schMmealScCode=%d&schYmd=%s" % (schulCode, schMmealScCode, schYmd)
-        )
-    html = get_html(URL)
-    soup = BeautifulSoup(html, 'html.parser')
-    temp = soup.find_all('table')
-    p=parser.make2d(temp[0])
-    #df=pd.DataFrame(p[1:])
-    df=pd.DataFrame(p)
-
-    return df
-
-def get_today_diet(scode):
-    ymd = datetime.now().strftime("%Y.%m.%d")  # 오늘 날짜
-    lunch = get_diet(scode, 2, ymd)  # 점심
-    dinner = get_diet(scode, 3, ymd)  # 저녁
-
-    return lunch, dinner
-
-@app.post("/get_diet_audio")
-async def get_diet_audio(request: Request, school_code: str = Form(...)):
-    lunch, dinner = get_today_diet(school_code)
-    diet_text = f"오늘 점심 메뉴는 {lunch}이고, 저녁 메뉴는 {dinner}입니다."
-
-    # 음성 변환 수행
-    response = client.audio.speech.create(
-        model="tts-1",
-        voice="alloy",
-        input=diet_text,
-    )
-    unique_filename = f"diet_audio.mp3"
-    output_file_path = os.path.join('static', unique_filename)
-    response.stream_to_file(output_file_path)
-
-    audio_url = f"/static/{unique_filename}"
-    return templates.TemplateResponse("diet_page.html", {"request": request, "audio_url": audio_url})
 
 # 교과세특
 system_messages1=[
@@ -371,6 +317,72 @@ async def run_code(
     audio_url = f"/static/{unique_filename}"
 
     return templates.TemplateResponse("nav6.html", {"request": request, "audio_url": audio_url})
+
+async def process_audio(file: UploadFile, client):
+    # 지원되는 파일 형식 목록
+    supported_formats = ['flac', 'm4a', 'mp3', 'mp4', 'mpeg', 'mpga', 'oga', 'ogg', 'wav', 'webm']
+    print(file.filename)
+    
+    # 파일 형식 확인
+    file_extension = file.filename.split('.')[-1].lower()
+    if file_extension not in supported_formats:
+        raise HTTPException(status_code=400, detail=f"Unsupported file format: {file_extension}")
+    
+    # 고유한 파일 이름 생성
+    # unique_filename = f"{uuid.uuid4()}.txt"
+    # output_file_path = os.path.join('static', unique_filename)
+    # print(output_file_path)
+
+    try:
+        # 오디오 파일을 읽고 텍스트로 변환
+        content = await file.read()
+        audio_file = io.BytesIO(content)
+        audio_file.name = file.filename  # 파일 이름을 설정
+
+         # API 호출 비동기 방식 변경
+        loop = asyncio.get_event_loop()
+        response = await loop.run_in_executor(None, lambda: client.audio.transcriptions.create(
+            model="whisper-1",
+            file=audio_file,
+            response_format="text"
+        ))
+
+        # gpt-4o
+        # response_gpt4o = await loop.run_in_executor(None, lambda: client.chat.completions.create(
+        #    model="gpt-4o",
+        #    temperature=0,
+        #    messages=[
+        #    {
+        #        "role": "user",
+        #        "content": audio_file
+        #    }
+        #]))
+
+
+        # 로그 출력
+        print("API Response:", response)
+        #print("gpt-4o Response:", response_gpt4o)
+
+        # 응답에서 텍스트 추출
+        transcription_text = response
+
+        # 텍스트 파일로 저장
+        #with open(output_file_path, 'w', encoding='utf-8') as f:
+        #    f.write(transcription_text)
+    
+    except Exception as e:
+        # 예외 발생 시 로그 출력
+        print(f"Error processing audio file: {e}")
+        raise HTTPException(status_code=500, detail=f"Error processing audio file: {e}")
+
+    return transcription_text
+
+@app.post("/upload_audio")
+async def upload_audio(request: Request, file: UploadFile = File(...)):
+    if file:
+        transcription_text = await process_audio(file, client)
+        return templates.TemplateResponse("result_aud.html", {"request": request, "transcription_text": transcription_text})
+    return {"message": "No file uploaded"}
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
