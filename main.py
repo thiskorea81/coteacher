@@ -60,7 +60,7 @@ def fetch_and_summarize_news(url):
 
     # OpenAI API를 사용하여 내용 요약
     summary_response = client.chat.completions.create(
-        model="gpt-4-1106-preview",
+        model="gpt-4o",
         messages=[
             {"role": "system", "content": "웹페이지를 요약해주는 역할을 하고 있고, 크롤링에서 쓸모없는 부분은 제외하고 요약해줘."},
             {"role": "user", "content": f"요약: {text_content}"}
