@@ -115,33 +115,21 @@
     </script>
 </head>
 <body>
-    <div id="load">
-        <img src="img/loading.gif" alt="loading">
-    </div>
-    <div>
-        <form id="codeForm" onsubmit="return submitForm(event, '/summarize_and_convert');">
-            <input type="text" name="url" placeholder="뉴스 페이지 URL">
-            <button type="submit">요약 및 음성 변환</button>
+    <h1>유튜브 동영상 요약 및 기사 작성</h1>
+    <div class="container">
+        <form action="/summarize_youtube" method="post">
+            <label for="url">유튜브 동영상 URL:</label>
+            <input type="text" id="url" name="url" placeholder="유튜브 동영상 URL을 입력하세요" required>
+            <button type="submit">요약 및 기사 작성</button>
         </form>
     </div>
-
-    <div>
-        <h2>뉴스 요약</h2>
-        {% if image_url %}
-                <img src="{{ image_url }}" alt="대표 이미지" style="max-width: 100%; height: auto;"/>
-            {% endif %}
-        <p>{{ summary }}</p>
-        <h2>뉴스 링크</h2>
-        <p><a href="{{ url }}" target="_blank">{{ url }}</a></p>
-        <h2>음성 변환 결과</h2>
-        <audio controls autoplay>
-            <source src="{{ audio_url }}" type="audio/mpeg">
-            브라우저가 오디오를 지원하지 않습니다.
-        </audio>
-        <!-- 다운로드 버튼 -->
-        <a href="{{ audio_url }}" download="converted_audio.mp3">
-            <button type="button">Download Audio</button>
-        </a>
+    <div class="container">
+        {% if article %}
+            <h2>기사</h2>
+            <p>{{ article }}</p>
+        {% elif error %}
+            <p>{{ error }}</p>
+        {% endif %}
     </div>
 </body>
 </html>

@@ -33,7 +33,7 @@ client = OpenAI()
 @app.post("/summarize_and_convert")
 async def summarize_and_convert(request: Request, url: str = Form(...)):
     # 페이지 페이지 요약
-    news_content = fetch_and_summarize_news(url)
+    news_content, image_url = fetch_and_summarize_news(url)
     # 음성 변환
     response = client.audio.speech.create(
         model="tts-1",
@@ -46,7 +46,7 @@ async def summarize_and_convert(request: Request, url: str = Form(...)):
     response.stream_to_file(output_file_path)
 
     audio_url = f"/static/{unique_filename}"
-    return templates.TemplateResponse("nav8.html", {"request": request, "audio_url": audio_url, "summary": news_content})
+    return templates.TemplateResponse("nav8.html", {"request": request, "audio_url": audio_url, "summary": news_content, "image_url": image_url, "url": url})
 
 def fetch_and_summarize_news(url):
     # 웹 페이지의 HTML 내용을 가져옴
@@ -55,6 +55,14 @@ def fetch_and_summarize_news(url):
 
     # BeautifulSoup을 사용하여 본문 내용을 추출
     soup = BeautifulSoup(html_content, 'html.parser')
+    
+    # 대표 이미지 URL 추출
+    image_url = ""
+    if soup.find('meta', property='og:image'):
+        image_url = soup.find('meta', property='og:image')['content']
+    elif soup.find('img'):
+        image_url = soup.find('img')['src']
+
     paragraphs = soup.find_all('p')
     text_content = ' '.join([p.get_text() for p in paragraphs])
 
@@ -68,7 +76,7 @@ def fetch_and_summarize_news(url):
     )
     summary = summary_response.choices[0].message.content
 
-    return summary
+    return summary, image_url
 
 # 교과세특
 system_messages1=[
