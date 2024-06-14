@@ -24,7 +24,6 @@ templates = Jinja2Templates(directory="templates")
 # staticFiles mount
 app.mount("/csv_sample", StaticFiles(directory="csv_sample"), name="csv_sample")
 app.mount("/img", StaticFiles(directory="img"), name="img")
-app.mount("/aud", StaticFiles(directory="aud"), name="aud")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 client = OpenAI()
